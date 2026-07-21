@@ -6,7 +6,6 @@ mcp = frappe_mcp.MCP(name="frax")
 
 @mcp.register()
 def handle_mcp():
+    from frax.tools import register_all_tools
 
-    from frax.tools import register_tools
-
-    register_tools(mcp)
+    register_all_tools()
