@@ -199,7 +199,12 @@ app_license = "mit"
 # Request Events
 # ----------------
 # before_request = ["frax.utils.before_request"]
-# after_request = ["frax.utils.after_request"]
+after_request = ["frax.oauth.after_request"]
+page_renderer = ["frax.oauth.OAuthCompatibilityPage"]
+
+# Authentication
+# --------------
+auth_hooks = ["frax.auth.validate_mcp_bearer_api_key"]
 
 # Job Events
 # ----------
@@ -243,4 +248,3 @@ app_license = "mit"
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
-
