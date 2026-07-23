@@ -54,6 +54,7 @@ def get_doctype_context(doctype: str, include_fields: bool = True, field_limit: 
             )
 
     customization_filters = {"dt": doctype}
+    custom_docperm_filters = {"parent": doctype}
     workflow_filters = {"document_type": doctype}
     script_filters = {"dt": doctype}
 
@@ -64,6 +65,7 @@ def get_doctype_context(doctype: str, include_fields: bool = True, field_limit: 
             "istable": meta.istable,
             "issingle": meta.issingle,
             "is_submittable": meta.is_submittable,
+            "allow_rename": meta.allow_rename,
             "is_tree": getattr(meta, "is_tree", 0),
             "is_virtual": getattr(meta, "is_virtual", 0),
             "track_changes": meta.track_changes,
@@ -82,6 +84,15 @@ def get_doctype_context(doctype: str, include_fields: bool = True, field_limit: 
         "fields": fields,
         "field_count": len(meta.fields),
         "field_limit_applied": include_fields and len(meta.fields) > field_limit,
+        "child_tables": [
+            {
+                "fieldname": field.fieldname,
+                "label": field.label,
+                "options": field.options,
+                "reqd": field.reqd,
+            }
+            for field in meta.get_table_fields()
+        ],
         "customizations": {
             "custom_fields": _safe_list(
                 "Custom Field",
@@ -93,13 +104,17 @@ def get_doctype_context(doctype: str, include_fields: bool = True, field_limit: 
                 filters={"doc_type": doctype},
                 fields=["name", "field_name", "property", "property_type", "modified"],
             ),
-            "custom_docperm_count": _safe_count("Custom DocPerm", customization_filters),
+            "custom_docperm_count": _safe_count("Custom DocPerm", custom_docperm_filters),
         },
         "behavior": {
             "workflows": _safe_list(
                 "Workflow",
                 filters=workflow_filters,
                 fields=["name", "is_active", "workflow_state_field", "modified"],
+            ),
+            "active_workflow_count": _safe_count(
+                "Workflow",
+                {"document_type": doctype, "is_active": 1},
             ),
             "client_scripts": _safe_list(
                 "Client Script",

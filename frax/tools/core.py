@@ -113,7 +113,7 @@ def create_document(doc: dict[str, Any]):
     """
     from frappe.client import insert
 
-    return insert(doc=doc)
+    return _json_safe(insert(doc=doc))
 
 
 @frax_tool(
@@ -122,7 +122,7 @@ def create_document(doc: dict[str, Any]):
     requires_confirmation=True,
     annotations=annotations_for("write", open_world=True, title="Save Frappe Document"),
 )
-def save_document(doc: dict[str, Any]):
+def save_document(doc: dict[str, Any], merge: bool = False):
     """Save an existing Frappe document through normal Frappe save behavior.
 
     Preflight non-trivial saves with metadata, permissions, workflow state, scripts,
@@ -131,10 +131,29 @@ def save_document(doc: dict[str, Any]):
 
     Args:
         doc: Full document payload including doctype and name.
+        merge: When true, load the latest document and apply only mutable payload
+            fields before saving. Default false preserves native Frappe save semantics,
+            including stale document checks.
     """
     from frappe.client import save
 
-    return save(doc=doc)
+    if not merge:
+        return save(doc=doc)
+
+    doctype = doc.get("doctype")
+    name = doc.get("name")
+
+    if not doctype:
+        frappe.throw(_("Document payload must include doctype"))
+    if not name and not frappe.get_meta(doctype).issingle:
+        frappe.throw(_("Document payload must include name"))
+
+    meta = frappe.get_meta(doctype)
+    current = frappe.get_doc(doctype, name) if not meta.issingle else frappe.get_doc(doctype)
+
+    current.update(_get_mutable_patch(doc, current))
+    current.save()
+    return current.as_dict()
 
 
 @frax_tool(
@@ -202,8 +221,16 @@ def delete_document(doctype: str, name: str):
         name: Document name to delete.
     """
     from frappe.client import delete
+    from frappe.utils.global_search import delete_for_document
 
-    return delete(doctype=doctype, name=name)
+    doc = frappe.get_doc(doctype, name)
+    result = delete(doctype=doctype, name=name)
+    try:
+        delete_for_document(doc)
+    except Exception:
+        frappe.clear_messages()
+
+    return result
 
 
 @frax_tool(
@@ -220,11 +247,20 @@ def submit_document(doc: dict[str, Any]):
     DocType context, workflow transitions, permissions, scripts, hooks, and settings first.
 
     Args:
-        doc: Full document payload including doctype and name.
+        doc: Document identity payload including doctype and name. Additional fields
+            are ignored; save edits first, then submit.
     """
-    from frappe.client import submit
+    doctype = doc.get("doctype")
+    name = doc.get("name")
 
-    return submit(doc=doc)
+    if not doctype:
+        frappe.throw(_("Document payload must include doctype"))
+    if not name:
+        frappe.throw(_("Document payload must include name"))
+
+    current = frappe.get_doc(doctype, name)
+    current.submit()
+    return current.as_dict()
 
 
 @frax_tool(
@@ -286,9 +322,17 @@ def get_workflow_transitions(doc: dict[str, Any]):
     Args:
         doc: Document payload including doctype and name.
     """
-    from frappe.model.workflow import get_transitions
+    from frappe.model.workflow import get_transitions, get_workflow_name
 
-    return get_transitions(doc=doc)
+    doctype = doc.get("doctype")
+    if not doctype:
+        frappe.throw(_("Document payload must include doctype"))
+
+    workflow_name = get_workflow_name(doctype)
+    if not workflow_name:
+        return {"transitions": [], "reason": "No active workflow configured"}
+
+    return {"transitions": get_transitions(doc=doc, raise_exception=False)}
 
 
 @frax_tool(
@@ -407,21 +451,43 @@ def attach_file(
     risk="read",
     annotations=annotations_for("read", idempotent=True, title="Search Frappe"),
 )
-def search(text: str, start: int = 0, limit: int = 20, doctype: str = ""):
+def search(
+    text: str,
+    start: int = 0,
+    limit: int = 20,
+    doctype: str = "",
+    exact_match: bool = True,
+    verify_results: bool = False,
+):
     """Search globally across documents readable by the current user.
 
     Use for discovery when the DocType or document name is unknown. Results may be
-    broad; narrow by DocType and pagination where possible.
+    broad; narrow by DocType and pagination where possible. Frappe global search
+    indexing is refreshed asynchronously, so recent creates/deletes may not appear
+    immediately. Use exact get/list tools, or verify_results=True, when confirming
+    current document existence.
 
     Args:
         text: Search phrase.
         start: Offset for pagination.
         limit: Maximum number of results.
         doctype: Optional DocType to restrict search.
+        exact_match: Prepend exact document-name matches for ID-like searches.
+        verify_results: Drop global-search hits whose backing document no longer
+            exists or is not readable. Disabled by default to preserve Frappe search
+            behavior for broad discovery.
     """
     from frappe.utils.global_search import search
 
-    return search(text=text, start=start, limit=limit, doctype=doctype)
+    limit = max(0, limit)
+    exact_results = (
+        _find_exact_search_results(text=text, doctype=doctype, limit=limit)
+        if exact_match and _should_exact_scan(text, doctype)
+        else []
+    )
+    fuzzy_results = search(text=text, start=start, limit=limit, doctype=doctype)
+
+    return _dedupe_search_results([*exact_results, *fuzzy_results], verify_exists=verify_results)[:limit]
 
 
 @frax_tool(
@@ -475,3 +541,163 @@ def get_versions():
     from frappe.utils.change_log import get_versions
 
     return get_versions()
+
+
+_SYSTEM_FIELDS = {
+    "doctype",
+    "name",
+    "owner",
+    "creation",
+    "modified",
+    "modified_by",
+    "docstatus",
+    "idx",
+}
+
+_CLIENT_ONLY_FIELDS = {
+    "__islocal",
+    "__last_sync_on",
+    "__onload",
+    "__unsaved",
+    "_assign",
+    "_comments",
+    "_liked_by",
+    "_seen",
+    "_user_tags",
+}
+
+
+def _get_mutable_patch(payload: dict[str, Any], current) -> dict[str, Any]:
+    patch = {}
+    table_fields = {field.fieldname for field in current.meta.get_table_fields()}
+    valid_fields = set(current.meta.get_valid_columns()) | table_fields
+
+    for fieldname, value in payload.items():
+        if fieldname in _SYSTEM_FIELDS or fieldname in _CLIENT_ONLY_FIELDS or fieldname.startswith("_"):
+            continue
+        if fieldname not in valid_fields:
+            continue
+        if fieldname in table_fields:
+            cleaned_rows = [_strip_child_system_fields(row) for row in value or []]
+            if cleaned_rows != [_strip_child_system_fields(row.as_dict()) for row in current.get(fieldname, [])]:
+                patch[fieldname] = cleaned_rows
+            continue
+        if current.get(fieldname) != value:
+            patch[fieldname] = value
+
+    return patch
+
+
+def _strip_child_system_fields(row: dict[str, Any]) -> dict[str, Any]:
+    child_system_fields = _SYSTEM_FIELDS - {"name"}
+    return {
+        key: value
+        for key, value in row.items()
+        if key not in child_system_fields
+        and key not in {"parent", "parentfield", "parenttype"}
+        and key not in _CLIENT_ONLY_FIELDS
+        and not key.startswith("_")
+    }
+
+
+def _should_exact_scan(text: str, doctype: str = "") -> bool:
+    text = (text or "").strip()
+    return bool(doctype) or bool(text and not any(char.isspace() for char in text))
+
+
+def _find_exact_search_results(text: str, doctype: str = "", limit: int = 20) -> list[dict[str, Any]]:
+    text = (text or "").strip()
+    if not text or limit <= 0:
+        return []
+
+    if doctype:
+        return _exact_result_for_doctype(doctype, text)
+
+    results = []
+    readable_doctypes = frappe.get_user().get_can_read()
+    for candidate_doctype in readable_doctypes:
+        if len(results) >= limit:
+            break
+        try:
+            meta = frappe.get_meta(candidate_doctype)
+            if meta.issingle or meta.istable or getattr(meta, "is_virtual", 0):
+                continue
+            results.extend(_exact_result_for_doctype(candidate_doctype, text))
+        except Exception:
+            frappe.clear_messages()
+
+    return results
+
+
+def _exact_result_for_doctype(doctype: str, text: str) -> list[dict[str, Any]]:
+    try:
+        if not frappe.has_permission(doctype, "read"):
+            return []
+        meta = frappe.get_meta(doctype)
+        if meta.issingle or meta.istable or getattr(meta, "is_virtual", 0):
+            return []
+        if not frappe.db.table_exists(doctype):
+            return []
+        if not frappe.db.exists(doctype, text):
+            return []
+
+        doc = frappe.get_doc(doctype, text)
+        doc.check_permission("read")
+        return [
+            {
+                "doctype": doctype,
+                "name": doc.name,
+                "title": doc.get_title(),
+                "content": doc.get_title(),
+                "rank": 9999,
+                "match_type": "exact_name",
+            }
+        ]
+    except Exception:
+        frappe.clear_messages()
+        return []
+
+
+def _dedupe_search_results(results: list[Any], verify_exists: bool = False) -> list[Any]:
+    deduped = []
+    seen = set()
+    for result in results:
+        key = (result.get("doctype"), result.get("name"))
+        if key in seen:
+            continue
+        if verify_exists and not _search_result_exists(result):
+            continue
+        seen.add(key)
+        deduped.append(result)
+    return deduped
+
+
+def _search_result_exists(result: Any) -> bool:
+    doctype = result.get("doctype")
+    name = result.get("name")
+    if not doctype or not name:
+        return False
+
+    try:
+        meta = frappe.get_meta(doctype)
+        if meta.issingle:
+            return frappe.has_permission(doctype, "read")
+        if meta.istable or getattr(meta, "is_virtual", 0):
+            return False
+        if not frappe.db.table_exists(doctype):
+            return False
+        if not frappe.db.exists(doctype, name):
+            return False
+        frappe.get_doc(doctype, name).check_permission("read")
+        return True
+    except Exception:
+        frappe.clear_messages()
+        return False
+
+
+def _json_safe(value: Any) -> Any:
+    import json
+
+    from frappe.utils.response import json_handler
+
+    return json.loads(json.dumps(value, default=json_handler))
