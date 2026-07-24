@@ -9,7 +9,7 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
-    "frappe-mcp @ git+https://github.com/sanskar-onehash/frappe-mcp.git@version-16",
+    "frappe-mcp @ git+https://github.com/sanskar-onehash/frappe-mcp.git@frappe-v16",
 ]
 
 [build-system]
