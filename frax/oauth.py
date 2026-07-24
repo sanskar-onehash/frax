@@ -18,6 +18,9 @@ class OAuthCompatibilityPage(BaseRenderer):
     """Serve OAuth discovery routes missing from Frappe v15."""
 
     def can_render(self):
+        if _frappe_has_oauth_metadata_routes():
+            return False
+
         return _request_path() in {
             PROTECTED_RESOURCE_PATH,
             AUTHORIZATION_SERVER_PATH,
@@ -53,16 +56,23 @@ def after_request(response=None, request=None):
     if not response or not request:
         return
 
-    if request.path in {
-        PROTECTED_RESOURCE_PATH,
-        AUTHORIZATION_SERVER_PATH,
-        MCP_PATH,
-        AUTHORIZE_PATH,
-        TOKEN_PATH,
-    }:
+    compatibility_paths = set()
+    if not _frappe_has_oauth_metadata_routes():
+        compatibility_paths = {
+            PROTECTED_RESOURCE_PATH,
+            AUTHORIZATION_SERVER_PATH,
+            AUTHORIZE_PATH,
+            TOKEN_PATH,
+        }
+
+    if request.path in {MCP_PATH, *compatibility_paths}:
         _set_cors_headers(response)
 
-    if response.status_code in {401, 403} and request.path == MCP_PATH:
+    if (
+        not _frappe_has_oauth_metadata_routes()
+        and response.status_code in {401, 403}
+        and request.path == MCP_PATH
+    ):
         response.headers["WWW-Authenticate"] = (
             'Bearer resource_metadata="'
             f'{get_server_url()}{PROTECTED_RESOURCE_PATH}"'
@@ -113,6 +123,16 @@ def authorization_server_metadata():
 
 def _request_path():
     return frappe.local.request.path.rstrip("/") or "/"
+
+
+def _frappe_has_oauth_metadata_routes():
+    version = getattr(frappe, "__version__", "0").split("-", 1)[0]
+    try:
+        major = int(version.split(".", 1)[0])
+    except (TypeError, ValueError):
+        return False
+
+    return major >= 16
 
 
 def _json_response(data):
