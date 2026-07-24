@@ -7,7 +7,11 @@ from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 import frappe
-from frappe.config import get_modules_from_all_apps_for_user
+
+try:
+    from frappe.utils.modules import get_modules_from_all_apps_for_user
+except ImportError:
+    from frappe.config import get_modules_from_all_apps_for_user
 
 from frax.tools.registry import annotations_for, frax_tool, get_tool_policies
 
