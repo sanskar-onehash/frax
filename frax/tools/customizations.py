@@ -312,7 +312,12 @@ def _classify_client_script(script: str) -> list[str]:
     checks = {
         "rpc_call": ("frappe.call", "frappe.xcall", "frappe.db.get_value"),
         "field_mutation": ("set_value", "frm.set_value", "frappe.model.set_value"),
-        "role_or_user_logic": ("has_role", "frappe.user", "user_roles", "session.user"),
+        "role_or_user_logic": (
+            "frappe.user.has_role",
+            "frappe.user_roles",
+            "frappe.session.user",
+            "frappe.user.name",
+        ),
         "workflow_or_status": ("workflow", "status", "docstatus"),
         "validation": ("frappe.throw", "frappe.validated", "validate"),
         "navigation_or_route": ("set_route", "route_options"),

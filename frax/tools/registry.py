@@ -57,7 +57,9 @@ def frax_tool(
             if roles:
                 import frappe
 
-                if frappe.session.user != "Administrator" and not any(frappe.has_role(role) for role in roles):
+                if frappe.session.user != "Administrator" and not any(
+                    role in frappe.get_roles() for role in roles
+                ):
                     frappe.throw(
                         f"Tool {name} requires one of these roles: {', '.join(roles)}.",
                         frappe.PermissionError,
