@@ -1,0 +1,177 @@
+.frax-mcp-setup {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 15px 48px;
+}
+.frax-hero,
+.frax-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.frax-hero {
+  padding: 8px 0 20px;
+}
+.frax-hero h2,
+.frax-panel h3 {
+  margin-top: 0;
+}
+.frax-hero p,
+.frax-panel-heading p {
+  color: var(--text-muted);
+  margin-bottom: 0;
+}
+.frax-panel {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  padding: 16px;
+}
+.frax-client-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.frax-status-card,
+.frax-client {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+.frax-status-card strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.frax-client label {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-top: 14px;
+}
+.frax-copy-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.frax-copy-row code {
+  background: var(--subtle-fg);
+  border-radius: 6px;
+  flex: 1;
+  overflow-wrap: anywhere;
+  padding: 8px 10px;
+}
+.frax-client pre {
+  background: var(--subtle-fg);
+  border: 0;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-top: 4px;
+  overflow-x: auto;
+  padding: 10px;
+  white-space: pre-wrap;
+}
+.frax-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.frax-token-instructions {
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 10px 0;
+}
+.frax-token-instructions code {
+  display: inline-block;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+.frax-client-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+.frax-client-form .form-group {
+  margin-bottom: 0;
+}
+.frax-client-form label {
+  line-height: 1.25;
+  margin-bottom: 3px;
+}
+.frax-client-form .form-control {
+  height: 30px;
+  line-height: 1.25;
+  min-height: 30px;
+  padding: 4px 8px;
+}
+.frax-client-form textarea.form-control {
+  height: auto;
+  min-height: 84px;
+}
+.frax-client-form .help-box {
+  line-height: 1.25;
+  margin: 3px 0 0;
+}
+.frax-client-form .frax-connection-url {
+  grid-column: 1 / -1;
+}
+.frax-client-form .frax-redirect-uris-wrap {
+  grid-column: 1 / -1;
+}
+.frax-client-form .frax-create-client {
+  width: fit-content;
+}
+.frax-client-list-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin: 32px 0 8px;
+}
+.frax-client-list-heading h4 {
+  margin: 0;
+}
+.frax-client-row {
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+.frax-client-row code {
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+.frax-client-row small {
+  display: block;
+  margin-top: 2px;
+}
+.frax-docs a {
+  display: block;
+  margin: 8px 0;
+  width: fit-content;
+}
+.frax-check {
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+.frax-check:last-child {
+  border-bottom: 0;
+}
+@media (max-width: 767px) {
+  .frax-client-grid {
+    grid-template-columns: 1fr;
+  }
+  .frax-hero,
+  .frax-panel-heading {
+    flex-direction: column;
+  }
+  .frax-client-form {
+    grid-template-columns: 1fr;
+  }
+}

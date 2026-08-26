@@ -64,9 +64,12 @@ def after_request(response=None, request=None):
 
     if response.status_code in {401, 403} and request.path == MCP_PATH:
         response.headers["WWW-Authenticate"] = (
-            'Bearer resource_metadata="'
-            f'{get_server_url()}{PROTECTED_RESOURCE_PATH}"'
+            'Bearer resource_metadata="' f'{get_server_url()}{PROTECTED_RESOURCE_PATH}"'
         )
+
+    if request.path.startswith("/api/method/frax.setup."):
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        response.headers["Pragma"] = "no-cache"
 
 
 @frappe.whitelist(allow_guest=True, methods=["GET"])
@@ -143,7 +146,7 @@ def _set_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = origin
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = (
-        "Authorization, Content-Type, MCP-Protocol-Version, Mcp-Session-Id"
+        "Authorization, Content-Type, MCP-Protocol-Version, Mcp-Session-Id, X-Frappe-CSRF-Token"
     )
     response.headers["Access-Control-Expose-Headers"] = (
         "WWW-Authenticate, MCP-Protocol-Version, Mcp-Session-Id"
