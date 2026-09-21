@@ -19,6 +19,15 @@ DEFAULTS = {
     "enabled": True,
     "oauth_enabled": True,
     "api_token_enabled": True,
+    "enable_core_tools": True,
+    "enable_context_tools": True,
+    "enable_customization_tools": True,
+    "enable_reporting_tools": True,
+    "enable_business_tools": True,
+    "default_page_length": 20,
+    "maximum_page_length": 200,
+    "maximum_download_bytes": 10 * 1024 * 1024,
+    "audit_retention_days": 90,
 }
 CLIENTS = {
     "claude": {
@@ -38,7 +47,11 @@ def get_settings_state():
     settings = frappe.get_cached_doc(SETTINGS_DOCTYPE)
     return frappe._dict(
         {
-            fieldname: settings.get(fieldname, default)
+            fieldname: (
+                settings.get(fieldname)
+                if settings.get(fieldname) not in (None, "")
+                else default
+            )
             for fieldname, default in DEFAULTS.items()
         }
     )

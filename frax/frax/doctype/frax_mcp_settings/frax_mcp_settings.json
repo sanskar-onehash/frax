@@ -9,6 +9,19 @@
     "enabled",
     "oauth_enabled",
     "api_token_enabled",
+    "tooling_section",
+    "enable_core_tools",
+    "enable_context_tools",
+    "category_column_break",
+    "enable_customization_tools",
+    "enable_reporting_tools",
+    "enable_business_tools",
+    "category_summary_html",
+    "limits_section",
+    "default_page_length",
+    "maximum_page_length",
+    "maximum_download_bytes",
+    "audit_retention_days",
     "status_section",
     "status_html"
   ],
@@ -38,6 +51,90 @@
       "fieldname": "api_token_enabled",
       "fieldtype": "Check",
       "label": "Enable API Token"
+    },
+    {
+      "fieldname": "tooling_section",
+      "fieldtype": "Section Break",
+      "label": "Tool Categories",
+      "description": "Choose which capabilities MCP users can discover and call. Changes take effect after saving; disabled categories are hidden and blocked server-side."
+    },
+    {
+      "default": "1",
+      "description": "Documents, search, comments, workflow operations, and other general Frappe tools.",
+      "fieldname": "enable_core_tools",
+      "fieldtype": "Check",
+      "label": "Enable Core Tools"
+    },
+    {
+      "default": "1",
+      "description": "Live metadata, permissions, installed apps, versions, source pointers, and site context.",
+      "fieldname": "enable_context_tools",
+      "fieldtype": "Check",
+      "label": "Enable Context and Inspection Tools"
+    },
+    {
+      "fieldname": "category_column_break",
+      "fieldtype": "Column Break"
+    },
+    {
+      "default": "1",
+      "description": "Custom Fields, Property Setters, Client Scripts, Server Scripts, and related customization tools.",
+      "fieldname": "enable_customization_tools",
+      "fieldtype": "Check",
+      "label": "Enable Customization Tools"
+    },
+    {
+      "default": "1",
+      "description": "Reports, Report Builder previews, charts, cards, and workspaces.",
+      "fieldname": "enable_reporting_tools",
+      "fieldtype": "Check",
+      "label": "Enable Reporting Tools"
+    },
+    {
+      "default": "1",
+      "description": "Domain-specific helpers for sales, purchasing, inventory, accounting, and business transactions. Available only when a compatible business application is installed.",
+      "fieldname": "enable_business_tools",
+      "fieldtype": "Check",
+      "label": "Enable Business Operations Tools"
+    },
+    {
+      "fieldname": "category_summary_html",
+      "fieldtype": "HTML",
+      "label": "Category Summary"
+    },
+    {
+      "collapsible": 1,
+      "fieldname": "limits_section",
+      "fieldtype": "Section Break",
+      "label": "Operational Limits and Retention"
+    },
+    {
+      "default": "20",
+      "description": "Rows returned when a tool call does not request a page size.",
+      "fieldname": "default_page_length",
+      "fieldtype": "Int",
+      "label": "Default Page Length"
+    },
+    {
+      "default": "200",
+      "description": "Hard upper bound for rows returned by one paginated tool call.",
+      "fieldname": "maximum_page_length",
+      "fieldtype": "Int",
+      "label": "Maximum Page Length"
+    },
+    {
+      "default": "10485760",
+      "description": "Maximum decoded attachment or generated PDF size returned through MCP.",
+      "fieldname": "maximum_download_bytes",
+      "fieldtype": "Int",
+      "label": "Maximum Download Bytes"
+    },
+    {
+      "default": "90",
+      "description": "Audit entries older than this are removed by the daily scheduler. Minimum 30 days.",
+      "fieldname": "audit_retention_days",
+      "fieldtype": "Int",
+      "label": "Audit Retention (Days)"
     },
     {
       "fieldname": "status_section",

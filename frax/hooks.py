@@ -206,6 +206,10 @@ page_renderer = ["frax.oauth.OAuthCompatibilityPage"]
 # --------------
 auth_hooks = ["frax.auth.validate_mcp_bearer_api_key"]
 
+scheduler_events = {
+    "daily": ["frax.audit.delete_expired_audit_logs"],
+}
+
 # Job Events
 # ----------
 # before_job = ["frax.utils.before_job"]
