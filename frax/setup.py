@@ -100,11 +100,11 @@ def mcp_url():
     return f"{site_url()}/api/method/{MCP_METHOD}"
 
 
-def _connection_snippets():
+def _connection_snippets(server_name="frax"):
     url = mcp_url()
     return {
-        "claude_code": f"claude mcp add --transport http frax {url}",
-        "codex_cli": f"codex mcp add frax --url {url}",
+        "claude_code": f"claude mcp add --transport http {server_name} {url}",
+        "codex_cli": f"codex mcp add {server_name} --url {url}",
         "api_token": (
             "Authorization: Bearer <KEY>:<SECRET>\n"
             "Use only when the client cannot complete the recommended OAuth flow."
@@ -117,20 +117,22 @@ def get_setup_context():
     require_mcp_access()
     from frax import __version__ as frax_version
     from frax import prompts
+    from frax.branding import public_branding
     from frax.mcp import mcp
     from frax.tools import register_all_tools
 
     prompts.register()
     register_all_tools()
     settings = get_settings_state()
+    branding = public_branding()
     user = frappe.get_doc("User", frappe.session.user)
     return {
         "site_url": site_url(),
         "mcp_url": mcp_url(),
         "versions": {
-            "frax": frax_version,
-            "frappe": getattr(frappe, "__version__", "unknown"),
-            "mcp_library": _package_version("frappe-mcp"),
+            "service": frax_version,
+            "platform": getattr(frappe, "__version__", "unknown"),
+            "protocol_library": _package_version("frappe-mcp"),
         },
         "capabilities": {
             "protocol_version": "2025-03-26",
@@ -144,7 +146,8 @@ def get_setup_context():
             "user_roles": frappe.get_roles(),
         },
         "api_token": {"api_key_exists": bool(user.api_key)},
-        "snippets": _connection_snippets(),
+        "branding": branding,
+        "snippets": _connection_snippets(branding["server_name"]),
         "docs": {
             "claude_code": "https://code.claude.com/docs/en/mcp",
             "codex": "https://developers.openai.com/codex/mcp",

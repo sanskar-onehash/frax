@@ -1,6 +1,6 @@
 frappe.ui.form.on("Frax MCP Settings", {
   refresh(frm) {
-    frm.add_custom_button(__("Open Frax Setup"), () =>
+    frm.add_custom_button(__("Open Connection Setup"), () =>
       frappe.set_route("frax-setup"),
     );
     frm.add_custom_button(

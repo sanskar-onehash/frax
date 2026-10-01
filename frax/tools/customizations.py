@@ -232,7 +232,7 @@ def get_server_script(name: str):
     """Get one Server Script document including restricted Python code.
 
     Sensitive read for System Manager. Prefer list/summaries first; retrieve full code
-    only when needed. Use frax_frappe_restricted_scripting before proposing changes.
+    only when needed. Use frax_restricted_scripting before proposing changes.
 
     Args:
         name: Server Script name.

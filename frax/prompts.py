@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from frappe_mcp.server.types import PromptMessage, TextContent
 
+from frax.branding import branded_operator_context
 from frax.context import OPERATOR_CONTEXT
 from frax.mcp import mcp
 
@@ -194,6 +195,7 @@ Rules:
 
 
 def _message(text: str, task: str | None = None) -> list[PromptMessage]:
+    text = branded_operator_context(text)
     if task:
         text = f"{text}\n\nCurrent task:\n{task}"
     return [PromptMessage(role="user", content=TextContent(text=text))]
@@ -204,15 +206,15 @@ def register():
 
 
 @mcp.prompt(
-    name="frax_frappe_operator",
-    description="Compact operating rules for working Frappe-natively with Frax.",
+    name="frax_operator",
+    description="Compact operating rules for working natively with the connected platform.",
 )
 def frappe_operator(task: str | None = None):
     return _message(OPERATOR_CONTEXT, task)
 
 
 @mcp.prompt(
-    name="frax_frappe_app_source_inspection",
+    name="frax_app_source_inspection",
     description="Inspect app source, hooks, controllers, fixtures, patches, and source/live behavior boundaries.",
 )
 def frappe_app_source_inspection(task: str | None = None):
@@ -220,7 +222,7 @@ def frappe_app_source_inspection(task: str | None = None):
 
 
 @mcp.prompt(
-    name="frax_frappe_native_ui",
+    name="frax_native_ui",
     description="Choose native Frappe Reports, Dashboards, Workspaces, Web Forms, Print Formats, Email Templates, and Notifications.",
 )
 def frappe_native_ui(task: str | None = None):
@@ -228,7 +230,7 @@ def frappe_native_ui(task: str | None = None):
 
 
 @mcp.prompt(
-    name="frax_frappe_high_risk_write",
+    name="frax_high_risk_write",
     description="Preflight discipline for material, destructive, submittable, accounting, stock, asset, permission, workflow, naming, and integration-sensitive writes.",
 )
 def frappe_high_risk_write(task: str | None = None):
@@ -236,7 +238,7 @@ def frappe_high_risk_write(task: str | None = None):
 
 
 @mcp.prompt(
-    name="frax_frappe_permission_workflow_debug",
+    name="frax_permission_workflow_debug",
     description="Debug Frappe permissions, User Permissions, shares, workflow states, transition buttons, and effective access.",
 )
 def frappe_permission_workflow_debug(task: str | None = None):
@@ -244,7 +246,7 @@ def frappe_permission_workflow_debug(task: str | None = None):
 
 
 @mcp.prompt(
-    name="frax_frappe_restricted_scripting",
+    name="frax_restricted_scripting",
     description="Rules for writing Frappe Server Scripts and Jinja templates in the restricted Frappe environment.",
 )
 def frappe_restricted_scripting(task: str | None = None):
@@ -252,7 +254,7 @@ def frappe_restricted_scripting(task: str | None = None):
 
 
 @mcp.prompt(
-    name="frax_frappe_requirement_mapping",
+    name="frax_requirement_mapping",
     description="Map a business/process requirement to source-backed apps, live customizations, native surfaces, and risk layers.",
 )
 def frappe_requirement_mapping(task: str | None = None):
