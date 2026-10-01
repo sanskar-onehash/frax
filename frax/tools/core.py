@@ -113,7 +113,15 @@ def create_document(doc: dict[str, Any]):
     """
     from frappe.client import insert
 
-    return _json_safe(insert(doc=doc))
+    validation = None
+    if doc.get("doctype") == "Server Script":
+        from frax.tools.scripting import validate_script_payload
+
+        validation = validate_script_payload(doc)
+    result = _json_safe(insert(doc=doc))
+    if validation and isinstance(result, dict):
+        result["_frax_validation"] = validation
+    return result
 
 
 @frax_tool(
@@ -137,8 +145,18 @@ def save_document(doc: dict[str, Any], merge: bool = False):
     """
     from frappe.client import save
 
+    validation = None
+    if doc.get("doctype") == "Server Script":
+        from frax.tools.scripting import validate_script_payload
+
+        current_script = frappe.get_doc("Server Script", doc.get("name")) if doc.get("name") else None
+        validation = validate_script_payload(doc, current_script)
+
     if not merge:
-        return save(doc=doc)
+        result = save(doc=doc)
+        if validation and isinstance(result, dict):
+            result["_frax_validation"] = validation
+        return result
 
     doctype = doc.get("doctype")
     name = doc.get("name")
@@ -153,7 +171,10 @@ def save_document(doc: dict[str, Any], merge: bool = False):
 
     current.update(_get_mutable_patch(doc, current))
     current.save()
-    return current.as_dict()
+    result = current.as_dict()
+    if validation:
+        result["_frax_validation"] = validation
+    return result
 
 
 @frax_tool(
@@ -177,7 +198,17 @@ def set_value(doctype: str, name: str, fieldname: str | dict[str, Any], value: A
     """
     from frappe.client import set_value
 
-    return set_value(doctype=doctype, name=name, fieldname=fieldname, value=value)
+    validation = None
+    if doctype == "Server Script":
+        from frax.tools.scripting import validate_script_payload
+
+        changes = fieldname if isinstance(fieldname, dict) else {fieldname: value}
+        current = frappe.get_doc(doctype, name)
+        validation = validate_script_payload(changes, current)
+    result = set_value(doctype=doctype, name=name, fieldname=fieldname, value=value)
+    if validation and isinstance(result, dict):
+        result["_frax_validation"] = validation
+    return result
 
 
 @frax_tool(

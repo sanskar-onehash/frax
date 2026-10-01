@@ -257,8 +257,13 @@ def create_server_script(doc: dict[str, Any]):
     Args:
         doc: Server Script fields. doctype is optional and will be set to Server Script.
     """
+    from frax.tools.scripting import validate_script_payload
+
+    validation = validate_script_payload(doc)
     doc = {**doc, "doctype": "Server Script"}
-    return frappe.get_doc(doc).insert().as_dict()
+    result = frappe.get_doc(doc).insert().as_dict()
+    result["_frax_validation"] = validation
+    return result
 
 
 @frax_tool(
@@ -278,10 +283,15 @@ def update_server_script(name: str, values: dict[str, Any]):
         name: Server Script name.
         values: Field values to update.
     """
+    from frax.tools.scripting import validate_script_payload
+
     doc = frappe.get_doc("Server Script", name)
+    validation = validate_script_payload(values, doc)
     doc.update(values)
     doc.save()
-    return doc.as_dict()
+    result = doc.as_dict()
+    result["_frax_validation"] = validation
+    return result
 
 
 @frax_tool(
