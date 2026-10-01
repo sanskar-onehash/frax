@@ -23,7 +23,7 @@ def list_documents(
     filters: dict[str, Any] | list[Any] | None = None,
     order_by: str | None = None,
     limit_start: int | None = None,
-    limit_page_length: int = 20,
+    limit_page_length: int | None = None,
 ):
     """List records from one DocType using the current user's Frappe permissions.
 
@@ -40,14 +40,20 @@ def list_documents(
         limit_page_length: Maximum number of records to return.
     """
     from frappe.client import get_list
+    from frax.setup import get_settings_state
+
+    settings = get_settings_state()
+    default_length = int(settings.default_page_length or 20)
+    maximum_length = int(settings.maximum_page_length or 200)
+    page_length = min(maximum_length, max(1, int(limit_page_length or default_length)))
 
     return get_list(
         doctype=doctype,
         fields=fields,
         filters=filters,
         order_by=order_by,
-        limit_start=limit_start,
-        limit_page_length=limit_page_length,
+        limit_start=max(0, int(limit_start or 0)),
+        limit_page_length=page_length,
     )
 
 
