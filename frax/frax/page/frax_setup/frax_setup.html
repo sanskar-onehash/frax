@@ -1,8 +1,11 @@
 <div class="frax-mcp-setup">
   <div class="frax-hero">
-    <div>
-      <h2>{{ __("Frax MCP") }}</h2>
-      <p>{{ __("Connect your AI client to this site.") }}</p>
+    <div class="frax-brand">
+      <img data-brand-logo class="frax-brand-logo hide" alt="">
+      <div>
+        <h2 data-brand-title>{{ __("Connection Setup") }}</h2>
+        <p>{{ __("Connect your AI client to this site.") }}</p>
+      </div>
     </div>
     <span class="frax-service-status"></span>
   </div>
@@ -75,6 +78,8 @@
 
   <section class="frax-panel frax-docs">
     <h3>{{ __("Client guides") }}</h3>
+    <a data-brand-doc class="hide" target="_blank" rel="noopener">{{ __("Product documentation") }}</a>
+    <a data-brand-support class="hide" target="_blank" rel="noopener">{{ __("Support") }}</a>
     <a data-doc="claude_code" target="_blank" rel="noopener">{{ __("Claude Code MCP guide") }}</a>
     <a data-doc="codex" target="_blank" rel="noopener">{{ __("Codex MCP guide") }}</a>
   </section>

@@ -14,6 +14,16 @@
 .frax-hero {
   padding: 8px 0 20px;
 }
+.frax-brand {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+.frax-brand-logo {
+  height: 40px;
+  max-width: 180px;
+  object-fit: contain;
+}
 .frax-hero h2,
 .frax-panel h3,
 .frax-client h4 {

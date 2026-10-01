@@ -15,28 +15,39 @@ mcp = frappe_mcp.MCP(name="frax", instructions=OPERATOR_CONTEXT)
 
 @frappe.whitelist(methods=["POST"])
 def handle_mcp():
+    from frax.branding import brand_mcp_response, branded_operator_context, get_branding
     from frax import prompts
     from frax.tools import register_all_tools
 
     settings = get_settings_state()
+    branding = get_branding()
     if not settings.enabled:
-        frappe.throw(_("Frax MCP is currently disabled."), SessionStopped)
+        frappe.throw(
+            _("{0} connection service is currently disabled.").format(
+                branding.product_name
+            ),
+            SessionStopped,
+        )
 
     require_mcp_access()
     auth_method = _request_auth_method()
     if auth_method == "oauth" and not settings.oauth_enabled:
         frappe.throw(
-            _("OAuth authentication is disabled for Frax MCP."), frappe.PermissionError
+            _("OAuth authentication is disabled for this connection service."),
+            frappe.PermissionError,
         )
     if auth_method == "api_token" and not settings.api_token_enabled:
         frappe.throw(
-            _("API token authentication is disabled for Frax MCP."),
+            _("API token authentication is disabled for this connection service."),
             frappe.PermissionError,
         )
 
     prompts.register()
     register_all_tools()
-    return _filter_tools_response(mcp.handle(frappe.request, Response()))
+    mcp._instructions = branded_operator_context(OPERATOR_CONTEXT)
+    request_payload = frappe.request.get_json(silent=True) or {}
+    response = _filter_tools_response(mcp.handle(frappe.request, Response()))
+    return brand_mcp_response(response, request_payload)
 
 
 def _request_auth_method():

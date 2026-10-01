@@ -1,19 +1,19 @@
 frappe.pages["frax-setup"].on_page_load = function (wrapper) {
   const page = frappe.ui.make_app_page({
     parent: wrapper,
-    title: __("Frax Setup"),
+    title: __("Connection Setup"),
     single_column: true,
   });
-  frappe.breadcrumbs.add("Frax");
   const $root = $(frappe.render_template("frax_setup")).appendTo(page.body);
-  const controller = new FraxMCPSetup($root);
+  const controller = new FraxMCPSetup($root, page);
   controller.bind();
   controller.refresh();
 };
 
 class FraxMCPSetup {
-  constructor($root) {
+  constructor($root, page) {
     this.$root = $root;
+    this.page = page;
     this.context = null;
   }
 
@@ -47,6 +47,16 @@ class FraxMCPSetup {
 
   render() {
     const context = this.context;
+    const branding = context.branding;
+    this.page.set_title(__("{0} Setup", [branding.product_name]));
+    this.$root.find("[data-brand-title]").text(branding.display_title);
+    const logo = branding.logo_url || branding.icon_url;
+    this.$root
+      .find("[data-brand-logo]")
+      .attr({ src: logo || "", alt: branding.product_name })
+      .toggleClass("hide", !logo);
+    this.brand_link("[data-brand-doc]", branding.documentation_url);
+    this.brand_link("[data-brand-support]", branding.support_url);
     const enabled = context.settings.enabled;
     this.$root
       .find(".frax-service-status")
@@ -78,6 +88,10 @@ class FraxMCPSetup {
 
   badge(text, good) {
     return `<span class="indicator-pill ${good ? "green" : "orange"}">${frappe.utils.escape_html(text)}</span>`;
+  }
+
+  brand_link(selector, url) {
+    this.$root.find(selector).attr("href", url || "").toggleClass("hide", !url);
   }
 
   async generate_api(rotate) {
