@@ -8,11 +8,7 @@
   "name": "frax-setup",
   "owner": "Administrator",
   "page_name": "frax-setup",
-  "roles": [
-    {
-      "role": "System Manager"
-    }
-  ],
+  "roles": [],
   "script": null,
   "standard": "Yes",
   "style": null,
