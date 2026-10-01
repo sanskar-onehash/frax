@@ -28,7 +28,7 @@ CATEGORY_SETTINGS = {
     "context": "enable_context_tools",
     "customization": "enable_customization_tools",
     "reporting": "enable_reporting_tools",
-    "erpnext": "enable_business_tools",
+    "business": "enable_business_tools",
 }
 
 
@@ -126,9 +126,14 @@ def enabled_categories() -> set[str]:
         for category, fieldname in CATEGORY_SETTINGS.items()
         if settings.get(fieldname)
     }
-    if "erpnext" in categories:
+    if "business" in categories:
         categories.update(
-            {"erpnext_selling", "erpnext_buying", "erpnext_stock", "erpnext_accounts"}
+            {
+                "business_selling",
+                "business_buying",
+                "business_stock",
+                "business_accounts",
+            }
         )
     return categories
 
@@ -140,7 +145,7 @@ def tool_is_available(tool_name: str) -> bool:
     category = policy["category"]
     if category not in enabled_categories():
         return False
-    if category == "erpnext" or category.startswith("erpnext_"):
+    if category == "business" or category.startswith("business_"):
         import frappe
 
         return "erpnext" in frappe.get_installed_apps()
@@ -151,16 +156,25 @@ def _require_category(category: str):
     import frappe
 
     if category not in enabled_categories():
-        frappe.throw(f"Frax MCP tool category '{category}' is disabled.", frappe.PermissionError)
-    if (category == "erpnext" or category.startswith("erpnext_")) and "erpnext" not in frappe.get_installed_apps():
-        frappe.throw("ERPNext is not installed on this site.", frappe.DoesNotExistError)
+        frappe.throw(
+            f"Frax MCP tool category '{category}' is disabled.", frappe.PermissionError
+        )
+    if (
+        category == "business" or category.startswith("business_")
+    ) and "erpnext" not in frappe.get_installed_apps():
+        frappe.throw(
+            "The business application is not installed on this site.",
+            frappe.DoesNotExistError,
+        )
 
 
 def _validate_arguments(fn: Callable[..., Any], arguments: dict[str, Any]):
     import frappe
 
     parameters = signature(fn).parameters
-    if any(parameter.kind == parameter.VAR_KEYWORD for parameter in parameters.values()):
+    if any(
+        parameter.kind == parameter.VAR_KEYWORD for parameter in parameters.values()
+    ):
         return
     unknown = sorted(set(arguments) - set(parameters))
     if not unknown:
@@ -183,5 +197,5 @@ def _category_from_module(module: str) -> str:
         "customizations": "customization",
         "reporting": "reporting",
         "scripting": "customization",
-        "erpnext": "erpnext",
+        "erpnext": "business",
     }.get(leaf, "core")

@@ -1,5 +1,14 @@
 def register_all_tools():
-    from frax.tools import app_tools, capabilities, context, core, customizations, documents, scripting
+    from frax.tools import (
+        app_tools,
+        capabilities,
+        context,
+        core,
+        customizations,
+        documents,
+        erpnext,
+        scripting,
+    )
 
     core.register()
     context.register()
@@ -8,3 +17,4 @@ def register_all_tools():
     customizations.register()
     documents.register()
     scripting.register()
+    erpnext.register()
