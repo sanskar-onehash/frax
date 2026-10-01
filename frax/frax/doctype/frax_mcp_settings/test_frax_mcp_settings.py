@@ -4,8 +4,8 @@ import frappe
 from frappe.exceptions import SessionStopped
 from frappe.tests.utils import FrappeTestCase
 
-from frax import setup
 from frax import mcp as mcp_module
+from frax import setup
 
 
 class TestFraxMCPSettings(FrappeTestCase):
@@ -16,7 +16,7 @@ class TestFraxMCPSettings(FrappeTestCase):
     def tearDown(self):
         frappe.set_user(self.previous_user)
 
-    def test_default_settings_are_safe_and_compatible(self):
+    def test_default_settings_enable_all_capability_categories(self):
         settings = frappe.get_single("Frax MCP Settings")
         self.assertEqual(settings.enabled, 1)
         self.assertEqual(settings.oauth_enabled, 1)
@@ -35,86 +35,64 @@ class TestFraxMCPSettings(FrappeTestCase):
         settings.api_token_enabled = 0
         self.assertRaises(frappe.ValidationError, settings.validate)
 
-    def test_codex_callback_is_stable_and_url_specific(self):
-        with patch("frax.setup.mcp_url", return_value="https://erp.example/api/method/frax.mcp.handle_mcp"):
-            first = setup.callback_uris("codex", 8766)[0]
-            second = setup.callback_uris("codex", 8766)[0]
-        with patch("frax.setup.mcp_url", return_value="https://other.example/api/method/frax.mcp.handle_mcp"):
-            other = setup.callback_uris("codex", 8766)[0]
-        self.assertEqual(first, second)
-        self.assertNotEqual(first, other)
-        self.assertTrue(first.startswith("http://127.0.0.1:8766/callback/"))
+    def test_empty_allowed_roles_permits_any_system_user(self):
+        with (
+            patch("frax.setup.get_allowed_roles", return_value=[]),
+            patch("frax.setup.frappe.db.get_value", return_value="System User"),
+        ):
+            self.assertTrue(setup.has_mcp_access("developer@example.com"))
 
-    def test_managed_oauth_clients_are_idempotent_and_repairable(self):
-        self._clear_managed_connections()
-        with patch("frax.setup.require_current_password"):
-            result = setup.configure_oauth_clients("test-password", 8875, 8876)
-        claude_name = setup._connection("claude").oauth_client
-        codex_name = setup._connection("codex").oauth_client
-        claude_secret = frappe.db.get_value("OAuth Client", claude_name, "client_secret")
+    def test_selected_roles_require_one_matching_role(self):
+        with (
+            patch("frax.setup.get_allowed_roles", return_value=["Accounts User"]),
+            patch("frax.setup.frappe.db.get_value", return_value="System User"),
+            patch("frax.setup.frappe.get_roles", return_value=["Accounts User"]),
+        ):
+            self.assertTrue(setup.has_mcp_access("accountant@example.com"))
 
-        self.assertIn("claude", result["created"])
-        self.assertIn("claude", result["client_secrets"])
-        self.assertTrue(frappe.db.exists("OAuth Client", codex_name))
+        with (
+            patch("frax.setup.get_allowed_roles", return_value=["Accounts User"]),
+            patch("frax.setup.frappe.db.get_value", return_value="System User"),
+            patch("frax.setup.frappe.get_roles", return_value=["Sales User"]),
+        ):
+            self.assertFalse(setup.has_mcp_access("seller@example.com"))
 
-        with patch("frax.setup.require_current_password"):
-            second = setup.configure_oauth_clients("test-password", 8875, 8876)
-        self.assertEqual(setup._connection("claude").oauth_client, claude_name)
-        self.assertEqual(setup._connection("codex").oauth_client, codex_name)
-        self.assertEqual(frappe.db.get_value("OAuth Client", claude_name, "client_secret"), claude_secret)
-        self.assertFalse(second["client_secrets"])
+    def test_guest_and_website_users_cannot_connect(self):
+        self.assertFalse(setup.has_mcp_access("Guest"))
+        with patch("frax.setup.frappe.db.get_value", return_value="Website User"):
+            self.assertFalse(setup.has_mcp_access("customer@example.com"))
 
-        frappe.db.set_value("OAuth Client", claude_name, "redirect_uris", "https://invalid.example/callback")
-        with patch("frax.setup.require_current_password"):
-            setup.configure_oauth_clients("test-password", 8875, 8876)
-        client = frappe.get_doc("OAuth Client", claude_name)
-        self.assertEqual(client.redirect_uris.splitlines(), setup.callback_uris("claude", 8875))
+    def test_administrator_is_always_allowed(self):
+        with patch("frax.setup.get_allowed_roles", return_value=["Unavailable Role"]):
+            self.assertTrue(setup.has_mcp_access("Administrator"))
 
-    def test_user_connection_does_not_adopt_manual_client(self):
-        self._clear_managed_connections()
-        manual = frappe.get_doc(
-            {
-                "doctype": "OAuth Client",
-                "app_name": setup.CLIENTS["claude"]["app_name"],
-                "scopes": "all openid",
-                "redirect_uris": "https://manual.example/callback",
-                "default_redirect_uri": "https://manual.example/callback",
-                "grant_type": "Authorization Code",
-                "response_type": "Code",
-            }
-        ).insert(ignore_permissions=True)
-        with patch("frax.setup.require_current_password"):
-            setup.configure_oauth_clients("test-password")
-        managed = setup._connection("claude").oauth_client
-        self.assertNotEqual(managed, manual.name)
-
-        frappe.delete_doc("OAuth Client", managed, ignore_permissions=True, force=True)
-        with patch("frax.setup.require_current_password"):
-            setup.configure_oauth_clients("test-password")
-        self.assertNotEqual(setup._connection("claude").oauth_client, managed)
-        self.assertNotEqual(setup._connection("claude").oauth_client, manual.name)
-
-    def test_setup_context_never_contains_secrets(self):
-        self._clear_managed_connections()
-        with patch("frax.setup.require_current_password"):
-            setup.configure_oauth_clients("test-password")
+    def test_setup_context_contains_no_manual_oauth_configuration(self):
         context = setup.get_setup_context()
         serialized = frappe.as_json(context).lower()
-        self.assertNotIn("client_secret", serialized)
-        self.assertNotIn("api_secret", serialized)
+        for private_field in (
+            "client_id",
+            "client_secret",
+            "redirect_uris",
+            "callback_port",
+            "api_secret",
+        ):
+            self.assertNotIn(private_field, serialized)
 
-    def test_oauth_secret_rotation_is_limited_to_the_current_users_client(self):
-        self._clear_managed_connections()
-        with patch("frax.setup.require_current_password"):
-            setup.configure_oauth_clients("test-password")
-        claude_name = setup._connection("claude").oauth_client
-        before = frappe.db.get_value("OAuth Client", claude_name, "client_secret")
-        with patch("frax.setup.require_current_password"):
-            result = setup.rotate_oauth_secret("claude", "test-password")
-        self.assertNotEqual(before, result["client_secret"])
+    def test_connection_commands_only_require_the_endpoint(self):
+        with patch(
+            "frax.setup.mcp_url",
+            return_value="https://onehash.example/api/method/frax.mcp.handle_mcp",
+        ):
+            snippets = setup._connection_snippets()
         self.assertEqual(
-            frappe.db.get_value("OAuth Client", claude_name, "client_secret"),
-            result["client_secret"],
+            snippets["codex_cli"],
+            "codex mcp add frax --url "
+            "https://onehash.example/api/method/frax.mcp.handle_mcp",
+        )
+        self.assertEqual(
+            snippets["claude_code"],
+            "claude mcp add --transport http frax "
+            "https://onehash.example/api/method/frax.mcp.handle_mcp",
         )
 
     def test_runtime_master_switch_returns_service_unavailable(self):
@@ -123,27 +101,31 @@ class TestFraxMCPSettings(FrappeTestCase):
             self.assertRaises(SessionStopped, mcp_module.handle_mcp)
 
     def test_runtime_authentication_switches_are_enforced(self):
-        oauth_off = frappe._dict({"enabled": 1, "oauth_enabled": 0, "api_token_enabled": 1})
+        oauth_off = frappe._dict(
+            {"enabled": 1, "oauth_enabled": 0, "api_token_enabled": 1}
+        )
         with (
             patch("frax.mcp.get_settings_state", return_value=oauth_off),
-            patch("frax.mcp.require_setup_access"),
+            patch("frax.mcp.require_mcp_access"),
             patch("frax.mcp._request_auth_method", return_value="oauth"),
         ):
             self.assertRaises(frappe.PermissionError, mcp_module.handle_mcp)
 
-        api_off = frappe._dict({"enabled": 1, "oauth_enabled": 1, "api_token_enabled": 0})
+        api_off = frappe._dict(
+            {"enabled": 1, "oauth_enabled": 1, "api_token_enabled": 0}
+        )
         with (
             patch("frax.mcp.get_settings_state", return_value=api_off),
-            patch("frax.mcp.require_setup_access"),
+            patch("frax.mcp.require_mcp_access"),
             patch("frax.mcp._request_auth_method", return_value="api_token"),
         ):
             self.assertRaises(frappe.PermissionError, mcp_module.handle_mcp)
 
-    def test_runtime_requires_mcp_setup_page_access(self):
+    def test_runtime_requires_mcp_access(self):
         state = frappe._dict({"enabled": 1, "oauth_enabled": 1, "api_token_enabled": 1})
         with (
             patch("frax.mcp.get_settings_state", return_value=state),
-            patch("frax.mcp.require_setup_access", side_effect=frappe.PermissionError),
+            patch("frax.mcp.require_mcp_access", side_effect=frappe.PermissionError),
         ):
             self.assertRaises(frappe.PermissionError, mcp_module.handle_mcp)
 
@@ -169,9 +151,3 @@ class TestFraxMCPSettings(FrappeTestCase):
             user.api_key = previous_key
             user.api_secret = previous_secret
             user.save(ignore_permissions=True)
-
-    def _clear_managed_connections(self):
-        for name in frappe.get_all(
-            "Frax MCP Connection", filters={"user": frappe.session.user}, pluck="name"
-        ):
-            frappe.delete_doc("Frax MCP Connection", name, ignore_permissions=True, force=True)

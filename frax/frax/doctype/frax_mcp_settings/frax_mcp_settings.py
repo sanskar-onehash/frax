@@ -8,7 +8,9 @@ class FraxMCPSettings(Document):
         from frax.setup import DEFAULTS
 
         if self.enabled and not (self.oauth_enabled or self.api_token_enabled):
-            frappe.throw(_("Enable at least one authentication method while MCP is enabled."))
+            frappe.throw(
+                _("Enable at least one authentication method while MCP is enabled.")
+            )
 
         self.default_page_length = self._bounded(
             "default_page_length",

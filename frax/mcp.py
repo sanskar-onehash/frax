@@ -8,7 +8,7 @@ from frappe import _
 from frappe.exceptions import SessionStopped
 
 from frax.context import OPERATOR_CONTEXT
-from frax.setup import get_settings_state, require_setup_access
+from frax.setup import get_settings_state, require_mcp_access
 
 mcp = frappe_mcp.MCP(name="frax", instructions=OPERATOR_CONTEXT)
 
@@ -22,7 +22,7 @@ def handle_mcp():
     if not settings.enabled:
         frappe.throw(_("Frax MCP is currently disabled."), SessionStopped)
 
-    require_setup_access()
+    require_mcp_access()
     auth_method = _request_auth_method()
     if auth_method == "oauth" and not settings.oauth_enabled:
         frappe.throw(

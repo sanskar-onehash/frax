@@ -9,6 +9,8 @@
     "enabled",
     "oauth_enabled",
     "api_token_enabled",
+    "access_section",
+    "allowed_roles",
     "tooling_section",
     "enable_core_tools",
     "enable_context_tools",
@@ -51,6 +53,19 @@
       "fieldname": "api_token_enabled",
       "fieldtype": "Check",
       "label": "Enable API Token"
+    },
+    {
+      "description": "Choose which System User roles may connect. Leave empty to allow every System User; normal user and document permissions still apply.",
+      "fieldname": "access_section",
+      "fieldtype": "Section Break",
+      "label": "User Access"
+    },
+    {
+      "description": "If roles are selected, a user needs at least one of them. Administrator is always allowed.",
+      "fieldname": "allowed_roles",
+      "fieldtype": "Table MultiSelect",
+      "label": "Allowed Roles",
+      "options": "Frax MCP Allowed Role"
     },
     {
       "fieldname": "tooling_section",
