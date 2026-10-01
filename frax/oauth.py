@@ -125,7 +125,9 @@ def authorization_server_metadata():
 
 
 def _request_path():
-    return frappe.local.request.path.rstrip("/") or "/"
+    request = getattr(frappe.local, "request", None)
+    path = getattr(request, "path", "")
+    return path.rstrip("/") or "/"
 
 
 def _frappe_has_oauth_metadata_routes():

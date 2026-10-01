@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -22,3 +23,7 @@ class TestOAuthCompatibility(TestCase):
         )
         self.assertIn("none", metadata["token_endpoint_auth_methods_supported"])
         self.assertNotIn("registration_endpoint", metadata)
+
+    def test_request_path_is_safe_outside_an_http_request(self):
+        with patch.object(oauth.frappe, "local", SimpleNamespace(request=None)):
+            self.assertEqual(oauth._request_path(), "/")
