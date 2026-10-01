@@ -1,0 +1,72 @@
+{
+  "actions": [],
+  "creation": "2026-08-26 00:00:00.000000",
+  "doctype": "DocType",
+  "document_type": "Setup",
+  "engine": "InnoDB",
+  "field_order": [
+    "service_section",
+    "enabled",
+    "oauth_enabled",
+    "api_token_enabled",
+    "status_section",
+    "status_html"
+  ],
+  "fields": [
+    {
+      "fieldname": "service_section",
+      "fieldtype": "Section Break",
+      "label": "Service Controls"
+    },
+    {
+      "default": "1",
+      "description": "Master switch for the Frax MCP endpoint. Disabling it preserves all clients and credentials.",
+      "fieldname": "enabled",
+      "fieldtype": "Check",
+      "label": "Enable MCP"
+    },
+    {
+      "default": "1",
+      "description": "Allow OAuth bearer tokens at the MCP endpoint.",
+      "fieldname": "oauth_enabled",
+      "fieldtype": "Check",
+      "label": "Enable OAuth"
+    },
+    {
+      "default": "1",
+      "description": "Allow API key and secret bearer credentials at the MCP endpoint.",
+      "fieldname": "api_token_enabled",
+      "fieldtype": "Check",
+      "label": "Enable API Token"
+    },
+    {
+      "fieldname": "status_section",
+      "fieldtype": "Section Break",
+      "label": "Setup and Access"
+    },
+    {
+      "fieldname": "status_html",
+      "fieldtype": "HTML",
+      "label": "Status"
+    }
+  ],
+  "issingle": 1,
+  "links": [],
+  "module": "Frax",
+  "modified": "2026-08-26 00:00:00.000000",
+  "modified_by": "Administrator",
+  "name": "Frax MCP Settings",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "read": 1,
+      "role": "System Manager",
+      "write": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "states": [],
+  "track_changes": 1
+}

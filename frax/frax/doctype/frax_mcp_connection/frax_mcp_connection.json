@@ -1,0 +1,55 @@
+{
+  "actions": [],
+  "creation": "2026-08-26 00:00:00.000000",
+  "doctype": "DocType",
+  "engine": "InnoDB",
+  "field_order": ["user", "integration", "client_type", "oauth_client", "callback_port"],
+  "fields": [
+    {
+      "fieldname": "user",
+      "fieldtype": "Link",
+      "label": "User",
+      "options": "User",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "integration",
+      "fieldtype": "Data",
+      "label": "Client Name",
+      "read_only": 1
+    },
+    {
+      "fieldname": "client_type",
+      "fieldtype": "Data",
+      "label": "Client Type",
+      "read_only": 1
+    },
+    {
+      "fieldname": "oauth_client",
+      "fieldtype": "Link",
+      "label": "OAuth Client",
+      "options": "OAuth Client",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "callback_port",
+      "fieldtype": "Int",
+      "label": "Local Callback Port",
+      "read_only": 1
+    }
+  ],
+  "links": [],
+  "module": "Frax",
+  "modified": "2026-08-26 00:00:00.000000",
+  "modified_by": "Administrator",
+  "name": "Frax MCP Connection",
+  "owner": "Administrator",
+  "permissions": [
+    { "create": 1, "read": 1, "role": "System Manager", "write": 1 }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "states": []
+}

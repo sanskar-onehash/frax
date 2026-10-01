@@ -1,0 +1,130 @@
+<div class="frax-mcp-setup">
+  <div class="frax-hero">
+    <div>
+      <h2>{{ __("Frax MCP") }}</h2>
+    </div>
+    <span class="frax-service-status"></span>
+  </div>
+
+  <section class="frax-panel">
+    <div class="frax-panel-heading">
+      <div>
+        <h3>{{ __("Create client") }}</h3>
+      </div>
+    </div>
+    <div class="frax-client-form">
+      <div class="form-group frax-connection-url">
+        <label>{{ __("Connection URL") }}</label>
+        <div class="frax-copy-row">
+          <code class="frax-endpoint"></code
+          ><button class="btn btn-default btn-sm" data-copy="endpoint">{{ __("Copy") }}</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>{{ __("Client") }}</label>
+        <select class="form-control frax-client-type">
+          <option value="" selected>{{ __("Select a client") }}</option>
+          <option value="claude">Claude</option>
+          <option value="codex">Codex</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group frax-client-name-wrap hide">
+        <label>{{ __("Client name") }}</label>
+        <input class="form-control frax-client-name" placeholder="{{ __("For
+        example: Cursor work laptop") }}">
+      </div>
+      <div class="form-group frax-redirect-uris-wrap">
+        <label>{{ __("Redirect URIs") }}</label>
+        <textarea
+          class="form-control frax-redirect-uris"
+          rows="3"
+          placeholder="https://client.example/oauth/callback"
+        ></textarea>
+        <p class="help-box small text-muted">
+          {{ __("One exact callback URI per line, supplied by the client.") }}
+        </p>
+      </div>
+      <div class="form-group frax-callback-port-wrap">
+        <label>{{ __("Local callback port (optional)") }}</label>
+        <input class="form-control frax-callback-port" type="number" />
+        <p class="help-box small text-muted">{{ __("Used only when the client receives OAuth in a local desktop or CLI callback.") }}</p>
+      </div>
+      <div class="form-group frax-client-password-wrap hide">
+        <label>{{ __("Current Password") }}</label>
+        <input class="form-control frax-client-password" type="password" />
+      </div>
+      <button class="btn btn-primary frax-create-client hide">
+        {{ __("Create Client") }}
+      </button>
+    </div>
+    <div class="frax-client-list-heading">
+      <h4>{{ __("Your clients") }}</h4>
+      <button class="btn btn-default btn-xs" data-open-client-list>{{ __("Open client list") }}</button>
+    </div>
+    <div class="frax-client-list text-muted"></div>
+  </section>
+
+  <section class="frax-panel">
+    <div class="frax-panel-heading">
+      <div>
+        <h3>{{ __("API token fallback") }}</h3>
+        <p>
+          {{ __("Use this only when your MCP client cannot connect with OAuth.") }}
+        </p>
+      </div>
+      <div class="frax-api-state"></div>
+    </div>
+    <p class="frax-token-instructions">
+      {{ __("Generate credentials, then configure your MCP client with the Connection URL above and this header:") }}
+      <br/><code>Authorization: &lt;paste generated value&gt;</code>
+    </p>
+    <div class="alert alert-warning frax-least-privilege">
+      {{ __("Recommended: connect a dedicated System User with only the roles
+      and document access the AI client needs. Avoid Administrator
+      credentials.") }}
+    </div>
+    <div class="frax-actions">
+      <button class="btn btn-default btn-sm frax-generate-api">
+        {{ __("Generate credentials") }}
+      </button>
+      <button class="btn btn-default btn-sm frax-rotate-api">
+        {{ __("Rotate secret") }}
+      </button>
+      <button class="btn btn-danger btn-sm frax-revoke-api">
+        {{ __("Revoke credentials") }}
+      </button>
+    </div>
+  </section>
+
+  <section class="frax-panel">
+    <div class="frax-panel-heading">
+      <div>
+        <h3>{{ __("Connection checks") }}</h3>
+        <p>
+          {{ __("Checks discovery, CORS, MCP initialization, ping, tools, and
+          prompts without changing business data.") }}
+        </p>
+      </div>
+      <button class="btn btn-default btn-sm frax-run-checks">
+        {{ __("Run checks") }}
+      </button>
+    </div>
+    <div class="frax-diagnostics text-muted">
+      {{ __("Checks have not run yet.") }}
+    </div>
+  </section>
+
+  <section class="frax-panel frax-docs">
+    <h3>{{ __("Client guides") }}</h3>
+    <a data-doc="claude_code" target="_blank" rel="noopener"
+      >{{ __("Claude Code MCP guide") }}</a
+    >
+    <a data-doc="claude_connectors" target="_blank" rel="noopener"
+      >{{ __("Claude custom connectors") }}</a
+    >
+    <a data-doc="codex" target="_blank" rel="noopener"
+      >{{ __("Codex MCP guide") }}</a
+    >
+  </section>
+</div>
