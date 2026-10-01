@@ -7,6 +7,7 @@ def register_all_tools():
         customizations,
         documents,
         erpnext,
+        reporting,
         scripting,
     )
 
@@ -18,3 +19,4 @@ def register_all_tools():
     documents.register()
     scripting.register()
     erpnext.register()
+    reporting.register()
