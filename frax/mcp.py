@@ -1,3 +1,5 @@
+import json
+
 from werkzeug import Response
 
 import frappe
@@ -34,7 +36,7 @@ def handle_mcp():
 
     prompts.register()
     register_all_tools()
-    return mcp.handle(frappe.request, Response())
+    return _filter_tools_response(mcp.handle(frappe.request, Response()))
 
 
 def _request_auth_method():
@@ -48,3 +50,25 @@ def _request_auth_method():
     if scheme.lower() == "bearer":
         return "oauth"
     return "session"
+
+
+def _filter_tools_response(response):
+    """Apply per-site visibility after frappe-mcp builds tools/list.
+
+    Runtime guards enforce the same policy for tools/call, so a stale client cannot
+    invoke a disabled or unavailable category.
+    """
+    try:
+        payload = json.loads(response.get_data(as_text=True))
+        tools = payload.get("result", {}).get("tools")
+        if not isinstance(tools, list):
+            return response
+        from frax.tools.registry import tool_is_available
+
+        payload["result"]["tools"] = [
+            tool for tool in tools if tool_is_available(tool.get("name", ""))
+        ]
+        response.set_data(json.dumps(payload, separators=(",", ":")))
+    except Exception:
+        frappe.log_error(title="Frax tools/list filtering failed")
+    return response

@@ -21,6 +21,12 @@ class TestFraxMCPSettings(FrappeTestCase):
         self.assertEqual(settings.enabled, 1)
         self.assertEqual(settings.oauth_enabled, 1)
         self.assertEqual(settings.api_token_enabled, 1)
+        state = setup.get_settings_state()
+        self.assertTrue(state.enable_core_tools)
+        self.assertTrue(state.enable_context_tools)
+        self.assertTrue(state.enable_customization_tools)
+        self.assertTrue(state.enable_reporting_tools)
+        self.assertTrue(state.enable_business_tools)
 
     def test_enabled_service_requires_authentication_method(self):
         settings = frappe.get_single("Frax MCP Settings")

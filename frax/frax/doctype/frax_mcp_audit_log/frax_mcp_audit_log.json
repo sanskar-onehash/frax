@@ -1,0 +1,42 @@
+{
+  "actions": [],
+  "autoname": "hash",
+  "creation": "2026-09-21 00:00:00.000000",
+  "doctype": "DocType",
+  "engine": "InnoDB",
+  "field_order": [
+    "correlation_id", "actor", "authentication_method", "tool_name", "category", "risk",
+    "column_break_1", "outcome", "duration_ms", "arguments_hash",
+    "details_section", "arguments_preview", "target_doctype", "target_name", "affected_documents", "error_class", "error_message"
+  ],
+  "fields": [
+    {"fieldname": "correlation_id", "fieldtype": "Data", "label": "Correlation ID", "read_only": 1},
+    {"fieldname": "actor", "fieldtype": "Link", "label": "Actor", "options": "User", "read_only": 1, "reqd": 1},
+    {"fieldname": "authentication_method", "fieldtype": "Data", "label": "Authentication Method", "read_only": 1},
+    {"fieldname": "tool_name", "fieldtype": "Data", "label": "Tool", "read_only": 1, "reqd": 1},
+    {"fieldname": "category", "fieldtype": "Data", "label": "Category", "read_only": 1},
+    {"fieldname": "risk", "fieldtype": "Data", "label": "Risk", "read_only": 1},
+    {"fieldname": "column_break_1", "fieldtype": "Column Break"},
+    {"fieldname": "outcome", "fieldtype": "Data", "label": "Outcome", "read_only": 1, "reqd": 1},
+    {"fieldname": "duration_ms", "fieldtype": "Int", "label": "Duration (ms)", "read_only": 1},
+    {"fieldname": "arguments_hash", "fieldtype": "Data", "label": "Arguments Hash", "read_only": 1},
+    {"fieldname": "details_section", "fieldtype": "Section Break", "label": "Redacted Details"},
+    {"fieldname": "arguments_preview", "fieldtype": "Small Text", "label": "Arguments Preview", "read_only": 1},
+    {"fieldname": "target_doctype", "fieldtype": "Link", "label": "Target DocType", "options": "DocType", "read_only": 1},
+    {"fieldname": "target_name", "fieldtype": "Data", "label": "Target Name", "read_only": 1},
+    {"fieldname": "affected_documents", "fieldtype": "Small Text", "label": "Affected Documents", "read_only": 1},
+    {"fieldname": "error_class", "fieldtype": "Data", "label": "Error Class", "read_only": 1},
+    {"fieldname": "error_message", "fieldtype": "Small Text", "label": "Error Message", "read_only": 1}
+  ],
+  "index_web_pages_for_search": 0,
+  "links": [],
+  "module": "Frax",
+  "modified": "2026-09-21 00:00:00.000000",
+  "modified_by": "Administrator",
+  "name": "Frax MCP Audit Log",
+  "owner": "Administrator",
+  "permissions": [{"delete": 1, "read": 1, "role": "System Manager"}],
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "states": []
+}
