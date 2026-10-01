@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from functools import wraps
-from inspect import signature
+from copy import deepcopy
 from difflib import get_close_matches
+from functools import wraps
+from inspect import Parameter, signature
 from time import monotonic
-from typing import Any, Literal, TypedDict
+from types import UnionType
+from typing import Any, Literal, TypedDict, Union, get_args, get_origin, get_type_hints
 
-from frappe_mcp.server.tools import ToolAnnotations
+from frappe_mcp.server.tools import ToolAnnotations, get_tool
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import best_match
 
 from frax.mcp import mcp
 
@@ -60,6 +64,7 @@ def frax_tool(
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
         resolved_category = category or _category_from_module(fn.__module__)
+        resolved_schema = _resolve_input_schema(fn, input_schema)
         tool_policies[name] = {
             "risk": risk,
             "requires_confirmation": requires_confirmation,
@@ -71,7 +76,7 @@ def frax_tool(
         def guarded(*args: Any, **kwargs: Any) -> Any:
             import frappe
 
-            _validate_arguments(fn, kwargs)
+            _validate_arguments(fn, kwargs, resolved_schema)
             _require_category(resolved_category)
             if roles:
                 if frappe.session.user != "Administrator" and not any(
@@ -106,7 +111,7 @@ def frax_tool(
 
         return mcp.tool(
             name=name,
-            input_schema=input_schema,
+            input_schema=resolved_schema,
             annotations=annotations or annotations_for(risk),
         )(guarded)
 
@@ -168,23 +173,90 @@ def _require_category(category: str):
         )
 
 
-def _validate_arguments(fn: Callable[..., Any], arguments: dict[str, Any]):
+def _resolve_input_schema(
+    fn: Callable[..., Any], input_schema: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    schema = deepcopy(get_tool(fn, {"input_schema": input_schema})["input_schema"])
+    parameters = signature(fn).parameters
+    if not any(
+        parameter.kind == Parameter.VAR_KEYWORD for parameter in parameters.values()
+    ):
+        schema.setdefault("additionalProperties", False)
+
+    try:
+        type_hints = get_type_hints(fn)
+    except (NameError, TypeError):
+        type_hints = {}
+    properties = schema.get("properties", {})
+    for key, annotation in type_hints.items():
+        if key in properties:
+            properties[key] = _add_literal_constraints(properties[key], annotation)
+    return schema
+
+
+def _add_literal_constraints(schema: dict[str, Any], annotation: Any) -> dict[str, Any]:
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+    if origin is Literal:
+        constrained = deepcopy(schema)
+        constrained["enum"] = list(args)
+        return constrained
+    if origin in (Union, UnionType):
+        alternatives = schema.get("anyOf")
+        if isinstance(alternatives, list) and len(alternatives) == len(args):
+            constrained = deepcopy(schema)
+            constrained["anyOf"] = [
+                _add_literal_constraints(item, arg)
+                for item, arg in zip(alternatives, args, strict=True)
+            ]
+            return constrained
+    if origin is list and args and isinstance(schema.get("items"), dict):
+        constrained = deepcopy(schema)
+        constrained["items"] = _add_literal_constraints(schema["items"], args[0])
+        return constrained
+    if (
+        origin is dict
+        and len(args) == 2
+        and isinstance(schema.get("additionalProperties"), dict)
+    ):
+        constrained = deepcopy(schema)
+        constrained["additionalProperties"] = _add_literal_constraints(
+            schema["additionalProperties"], args[1]
+        )
+        return constrained
+    return schema
+
+
+def _validate_arguments(
+    fn: Callable[..., Any],
+    arguments: dict[str, Any],
+    input_schema: dict[str, Any] | None = None,
+):
     import frappe
 
     parameters = signature(fn).parameters
-    if any(
-        parameter.kind == parameter.VAR_KEYWORD for parameter in parameters.values()
+    if not any(
+        parameter.kind == Parameter.VAR_KEYWORD for parameter in parameters.values()
     ):
+        unknown = sorted(set(arguments) - set(parameters))
+        if unknown:
+            details = []
+            for key in unknown:
+                matches = get_close_matches(key, parameters, n=1)
+                details.append(f"{key} (use {matches[0]})" if matches else key)
+            frappe.throw(
+                "Unexpected tool argument(s): " + ", ".join(details),
+                frappe.ValidationError,
+            )
+
+    schema = input_schema or _resolve_input_schema(fn)
+    error = best_match(Draft202012Validator(schema).iter_errors(arguments))
+    if not error:
         return
-    unknown = sorted(set(arguments) - set(parameters))
-    if not unknown:
-        return
-    details = []
-    for key in unknown:
-        matches = get_close_matches(key, parameters, n=1)
-        details.append(f"{key} (use {matches[0]})" if matches else key)
+    location = ".".join(str(part) for part in error.absolute_path)
+    subject = f"argument '{location}'" if location else "tool arguments"
     frappe.throw(
-        "Unexpected tool argument(s): " + ", ".join(details),
+        f"Invalid {subject}: {error.message}",
         frappe.ValidationError,
     )
 
