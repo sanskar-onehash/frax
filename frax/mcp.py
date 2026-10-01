@@ -46,7 +46,13 @@ def handle_mcp():
     register_all_tools()
     mcp._instructions = branded_operator_context(OPERATOR_CONTEXT)
     request_payload = frappe.request.get_json(silent=True) or {}
-    response = _filter_tools_response(mcp.handle(frappe.request, Response()))
+    from frax.mcp_apps import augment_response, handle_resource_request
+
+    resource_response = handle_resource_request(request_payload)
+    if resource_response is not None:
+        return resource_response
+    response = mcp.handle(frappe.request, Response())
+    response = augment_response(_filter_tools_response(response), request_payload)
     return brand_mcp_response(response, request_payload)
 
 
