@@ -59,6 +59,11 @@ Rules:
 - Do not create outside-the-system artifacts when native Desk/portal records satisfy the request.
 - Use Report Builder for simple field/filter tables, Query Report for safe parameterized SQL, and Script Report for business logic, joins, permission-aware computation, charts, or summaries.
 - Treat custom-source charts and custom-method cards as code-backed behavior, not simple metadata.
+- Before adding or moving form fields, inspect the complete merged field order, including existing Tab Break, Section Break, and Column Break fields. Preserve useful standard structure and identify the intended `insert_after` positions.
+- Design form layout proportionally: use tabs for substantial categories or workflow stages, sections for related groups, and column breaks for short fields that benefit from side-by-side scanning. Avoid both a single long column and unnecessary breaks that fragment a small form.
+- Keep dependent, mandatory, read-only, and frequently compared fields visually close. Put secondary or infrequent information later, and account for columns collapsing on narrow screens.
+- Frappe Select options are newline-delimited. With `Option 1` as the first line, a new document initially selects it; the serialized value `\\nOption 1` instead provides a blank initial choice. Both are valid: choose deliberately from required/default semantics and the user's intent, and do not invent a default.
+- After structural writes, reread merged metadata and verify field order, break placement, labels, dependencies, required/default behavior, and the resulting first-view information hierarchy.
 - Keep metric and process names redacted by default if they reveal private business operations."""
 
 
