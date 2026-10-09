@@ -98,16 +98,16 @@ def _operational_health(days: int) -> dict:
     outcomes = frappe.get_all(
         AUDIT_DOCTYPE,
         filters=filters,
-        fields=["outcome", "count(name) as calls"],
+        fields=["outcome", {"COUNT": "name", "as": "calls"}],
         group_by="outcome",
     )
     latency = frappe.get_all(
         AUDIT_DOCTYPE,
         filters=filters,
         fields=[
-            "count(name) as calls",
-            "avg(duration_ms) as average_ms",
-            "max(duration_ms) as maximum_ms",
+            {"COUNT": "name", "as": "calls"},
+            {"AVG": "duration_ms", "as": "average_ms"},
+            {"MAX": "duration_ms", "as": "maximum_ms"},
         ],
         limit_page_length=1,
     )
@@ -116,9 +116,9 @@ def _operational_health(days: int) -> dict:
         filters=filters,
         fields=[
             "tool_name",
-            "count(name) as calls",
-            "avg(duration_ms) as average_ms",
-            "max(duration_ms) as maximum_ms",
+            {"COUNT": "name", "as": "calls"},
+            {"AVG": "duration_ms", "as": "average_ms"},
+            {"MAX": "duration_ms", "as": "maximum_ms"},
         ],
         group_by="tool_name",
         order_by="average_ms desc",
@@ -127,7 +127,7 @@ def _operational_health(days: int) -> dict:
     categories = frappe.get_all(
         AUDIT_DOCTYPE,
         filters=filters,
-        fields=["category", "count(name) as calls"],
+        fields=["category", {"COUNT": "name", "as": "calls"}],
         group_by="category",
         order_by="calls desc",
         limit_page_length=SUMMARY_LIMIT,
@@ -138,8 +138,8 @@ def _operational_health(days: int) -> dict:
         fields=[
             "tool_name",
             "error_class",
-            "count(name) as calls",
-            "max(creation) as last_seen",
+            {"COUNT": "name", "as": "calls"},
+            {"MAX": "creation", "as": "last_seen"},
         ],
         group_by="tool_name, error_class",
         order_by="calls desc",
