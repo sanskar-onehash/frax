@@ -62,6 +62,19 @@ class TestFraxMCPSettings(FrappeTestCase):
         with patch("frax.setup.frappe.db.get_value", return_value="Website User"):
             self.assertFalse(setup.has_mcp_access("customer@example.com"))
 
+    def test_mcp_route_allows_oauth_discovery_but_requires_authentication(self):
+        self.assertIn(mcp_module.handle_mcp, frappe.guest_methods)
+        self.assertEqual(
+            frappe.allowed_http_methods_for_whitelisted_func[mcp_module.handle_mcp],
+            ["POST"],
+        )
+        previous_user = frappe.session.user
+        try:
+            frappe.session.user = "Guest"
+            self.assertRaises(frappe.AuthenticationError, setup.require_mcp_access)
+        finally:
+            frappe.session.user = previous_user
+
     def test_administrator_is_always_allowed(self):
         with patch("frax.setup.get_allowed_roles", return_value=["Unavailable Role"]):
             self.assertTrue(setup.has_mcp_access("Administrator"))

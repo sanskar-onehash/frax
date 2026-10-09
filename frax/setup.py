@@ -62,6 +62,11 @@ def has_mcp_access(user: str | None = None) -> bool:
 
 
 def require_mcp_access():
+    if frappe.session.user in (None, "", "Guest"):
+        frappe.throw(
+            _("Authentication is required to use this AI connection."),
+            frappe.AuthenticationError,
+        )
     if not has_mcp_access():
         frappe.throw(
             _("Your account is not allowed to use this AI connection."),
