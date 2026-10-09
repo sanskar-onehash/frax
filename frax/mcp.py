@@ -13,7 +13,7 @@ from frax.setup import get_settings_state, require_mcp_access
 mcp = frappe_mcp.MCP(name="frax", instructions=OPERATOR_CONTEXT)
 
 
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist(allow_guest=True, methods=["POST"])
 def handle_mcp():
     from frax.branding import brand_mcp_response, branded_operator_context, get_branding
     from frax import prompts
