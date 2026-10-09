@@ -76,6 +76,41 @@
     <div class="frax-details-body frax-diagnostics text-muted">{{ __("Checks have not run yet.") }}</div>
   </details>
 
+  <section class="frax-panel frax-operations hide">
+    <div class="frax-panel-heading">
+      <div>
+        <h3>{{ __("Operational health") }}</h3>
+        <p>{{ __("A privacy-safe summary of connection activity from the last seven days.") }}</p>
+      </div>
+      <div class="frax-actions frax-operation-actions">
+        <button class="btn btn-default btn-sm frax-refresh-health">{{ __("Refresh") }}</button>
+        <button class="btn btn-default btn-sm frax-export-diagnostics">{{ __("Export diagnostics") }}</button>
+      </div>
+    </div>
+    <div class="frax-health-state text-muted">{{ __("Loading operational health…") }}</div>
+    <div class="frax-health-content hide">
+      <div class="frax-health-metrics">
+        <div class="frax-health-metric"><span>{{ __("Calls") }}</span><strong data-health="calls">0</strong></div>
+        <div class="frax-health-metric"><span>{{ __("Success rate") }}</span><strong data-health="success-rate">0%</strong></div>
+        <div class="frax-health-metric"><span>{{ __("Errors") }}</span><strong data-health="errors">0</strong></div>
+        <div class="frax-health-metric"><span>{{ __("Average latency") }}</span><strong data-health="average-latency">0 ms</strong></div>
+      </div>
+      <div class="frax-health-lists">
+        <div>
+          <h4>{{ __("Slowest tools") }}</h4>
+          <div class="frax-slow-tools"></div>
+        </div>
+        <div>
+          <h4>{{ __("Frequent failures") }}</h4>
+          <div class="frax-failures"></div>
+        </div>
+      </div>
+      <p class="frax-health-note text-muted">
+        {{ __("The export excludes actors, arguments, document identifiers, error messages, and secrets.") }}
+      </p>
+    </div>
+  </section>
+
   <section class="frax-panel frax-docs">
     <h3>{{ __("Client guides") }}</h3>
     <a data-brand-doc class="hide" target="_blank" rel="noopener">{{ __("Product documentation") }}</a>

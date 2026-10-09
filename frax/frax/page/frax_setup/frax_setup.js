@@ -34,6 +34,10 @@ class FraxMCPSetup {
       event.preventDefault();
       this.run_checks();
     });
+    this.$root.on("click", ".frax-refresh-health", () => this.load_operations());
+    this.$root.on("click", ".frax-export-diagnostics", () =>
+      this.download_diagnostics(),
+    );
   }
 
   async refresh() {
@@ -84,6 +88,9 @@ class FraxMCPSetup {
     Object.entries(context.docs).forEach(([key, url]) =>
       this.$root.find(`[data-doc='${key}']`).attr("href", url),
     );
+    const canViewOperations = Boolean(context.operations?.can_view);
+    this.$root.find(".frax-operations").toggleClass("hide", !canViewOperations);
+    if (canViewOperations) this.load_operations();
   }
 
   badge(text, good) {
@@ -180,6 +187,105 @@ class FraxMCPSetup {
 
   copy(value) {
     if (value) frappe.utils.copy_to_clipboard(value);
+  }
+
+  async load_operations() {
+    const $state = this.$root
+      .find(".frax-health-state")
+      .removeClass("text-danger")
+      .addClass("text-muted")
+      .text(__("Loading operational health…"));
+    this.$root.find(".frax-health-content").addClass("hide");
+    this.$root.find(".frax-refresh-health").prop("disabled", true);
+    try {
+      const response = await frappe.call({
+        method: "frax.operations.get_operational_health",
+        type: "GET",
+        args: { days: 7 },
+      });
+      this.render_operations(response.message);
+    } catch (error) {
+      $state
+        .removeClass("text-muted")
+        .addClass("text-danger")
+        .text(error.message || __("Could not load operational health."));
+    } finally {
+      this.$root.find(".frax-refresh-health").prop("disabled", false);
+    }
+  }
+
+  render_operations(health) {
+    const totals = health.totals || {};
+    this.$root.find("[data-health='calls']").text(this.number(totals.calls));
+    this.$root
+      .find("[data-health='success-rate']")
+      .text(`${this.number(totals.success_rate_percent)}%`);
+    this.$root.find("[data-health='errors']").text(this.number(totals.errors));
+    this.$root
+      .find("[data-health='average-latency']")
+      .text(`${this.number(totals.average_duration_ms)} ms`);
+    this.render_health_rows(
+      ".frax-slow-tools",
+      health.slow_tools,
+      (row) => [row.tool, __(`{0} ms average`, [this.number(row.average_ms)])],
+      __("No calls in this period."),
+    );
+    this.render_health_rows(
+      ".frax-failures",
+      health.failures,
+      (row) => [
+        row.tool,
+        __(`{0} · {1} occurrences`, [row.error_class, this.number(row.calls)]),
+      ],
+      __("No failures in this period."),
+    );
+    this.$root
+      .find(".frax-health-state")
+      .text(
+        health.available
+          ? __("Showing the last {0} days.", [health.window.days])
+          : __("Audit data is not available yet."),
+      );
+    this.$root.find(".frax-health-content").removeClass("hide");
+  }
+
+  render_health_rows(selector, rows = [], values, emptyText) {
+    const html = rows.length
+      ? rows
+          .map((row) => {
+            const [label, detail] = values(row);
+            return `<div class="frax-health-row"><span>${frappe.utils.escape_html(label)}</span><small>${frappe.utils.escape_html(detail)}</small></div>`;
+          })
+          .join("")
+      : `<div class="text-muted">${frappe.utils.escape_html(emptyText)}</div>`;
+    this.$root.find(selector).html(html);
+  }
+
+  number(value) {
+    return Number(value || 0).toLocaleString();
+  }
+
+  async download_diagnostics() {
+    const $button = this.$root.find(".frax-export-diagnostics").prop("disabled", true);
+    try {
+      const response = await frappe.call({
+        method: "frax.operations.get_diagnostic_export",
+        type: "GET",
+        args: { days: 7 },
+      });
+      const blob = new Blob([JSON.stringify(response.message, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const serverName = this.context.branding.server_name || "frax";
+      link.href = url;
+      link.download = `${serverName}-diagnostics-${frappe.datetime.get_today()}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      $button.prop("disabled", false);
+    }
   }
 
   async run_checks() {

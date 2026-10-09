@@ -15,6 +15,17 @@ class TestOperations(unittest.TestCase):
         raise exception(message)
 
     def test_operational_access_is_limited_to_system_managers(self):
+        self.assertTrue(
+            operations.has_operational_access("Administrator", ["Sales User"])
+        )
+        self.assertFalse(operations.has_operational_access("Guest", ["System Manager"]))
+        self.assertTrue(
+            operations.has_operational_access("manager@example.com", ["System Manager"])
+        )
+        self.assertFalse(
+            operations.has_operational_access("user@example.com", ["Sales User"])
+        )
+
         regular_user = SimpleNamespace(
             session=SimpleNamespace(user="user@example.com"),
             get_roles=lambda: ["Sales User"],

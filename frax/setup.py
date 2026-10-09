@@ -126,6 +126,9 @@ def get_setup_context():
     settings = get_settings_state()
     branding = public_branding()
     user = frappe.get_doc("User", frappe.session.user)
+    user_roles = frappe.get_roles()
+    from frax.operations import has_operational_access
+
     return {
         "site_url": site_url(),
         "mcp_url": mcp_url(),
@@ -143,7 +146,10 @@ def get_setup_context():
         "access": {
             "can_use": True,
             "allowed_roles": get_allowed_roles(),
-            "user_roles": frappe.get_roles(),
+            "user_roles": user_roles,
+        },
+        "operations": {
+            "can_view": has_operational_access(frappe.session.user, user_roles)
         },
         "api_token": {"api_key_exists": bool(user.api_key)},
         "branding": branding,
