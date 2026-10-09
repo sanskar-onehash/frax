@@ -111,6 +111,60 @@
   gap: 8px;
   margin-top: 14px;
 }
+.frax-operation-actions {
+  margin-top: 0;
+}
+.frax-health-state {
+  margin: 14px 0;
+}
+.frax-health-metrics {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.frax-health-metric {
+  background: var(--subtle-fg);
+  border-radius: 8px;
+  padding: 12px;
+}
+.frax-health-metric span,
+.frax-health-metric strong {
+  display: block;
+}
+.frax-health-metric span {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.frax-health-metric strong {
+  font-size: 20px;
+}
+.frax-health-lists {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 20px;
+}
+.frax-health-lists h4 {
+  margin: 0 0 8px;
+}
+.frax-health-row {
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 7px 0;
+}
+.frax-health-row:last-child {
+  border-bottom: 0;
+}
+.frax-health-row small {
+  color: var(--text-muted);
+  text-align: right;
+}
+.frax-health-note {
+  margin: 18px 0 0;
+}
 .frax-token-instructions {
   color: var(--text-muted);
   line-height: 1.5;
@@ -132,6 +186,10 @@
 }
 @media (max-width: 767px) {
   .frax-client-grid {
+    grid-template-columns: 1fr;
+  }
+  .frax-health-metrics,
+  .frax-health-lists {
     grid-template-columns: 1fr;
   }
   .frax-hero,

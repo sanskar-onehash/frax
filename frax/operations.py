@@ -14,11 +14,18 @@ MAX_WINDOW_DAYS = 30
 SUMMARY_LIMIT = 10
 
 
-def require_operational_access():
-    user = frappe.session.user
+def has_operational_access(user=None, roles=None) -> bool:
+    user = user if user is not None else frappe.session.user
     if user == "Administrator":
-        return
-    if user in (None, "", "Guest") or "System Manager" not in frappe.get_roles():
+        return True
+    if user in (None, "", "Guest"):
+        return False
+    roles = roles if roles is not None else frappe.get_roles()
+    return "System Manager" in roles
+
+
+def require_operational_access():
+    if not has_operational_access():
         frappe.throw(
             _("System Manager access is required for operational diagnostics."),
             frappe.PermissionError,
