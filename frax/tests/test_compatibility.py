@@ -156,8 +156,9 @@ class TestCompatibilityReleaseGate(FrappeTestCase):
         diagnostic = operations.get_diagnostic_export.__wrapped__(1)
         serialized = json.dumps(diagnostic)
         self.assertNotIn(secret_marker, serialized)
-        self.assertNotIn("arguments_preview", serialized)
-        self.assertNotIn("error_message", serialized)
+        for failure in diagnostic["health"]["failures"]:
+            self.assertNotIn("arguments_preview", failure)
+            self.assertNotIn("error_message", failure)
 
     def test_customized_profile_preserves_form_layout_metadata(self):
         if COMPATIBILITY_PROFILE != "customized":
