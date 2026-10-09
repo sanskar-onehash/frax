@@ -12,12 +12,42 @@ class TestDocumentTools(FrappeTestCase):
         settings = SimpleNamespace(default_page_length=25, maximum_page_length=100)
         with (
             patch("frax.setup.get_settings_state", return_value=settings),
-            patch("frappe.client.get_list", return_value=[]) as get_list,
+            patch("frappe.get_list", return_value=[]) as get_list,
         ):
             core.list_documents.__wrapped__("User", limit_start=-10, limit_page_length=500)
 
         self.assertEqual(get_list.call_args.kwargs["limit_start"], 0)
         self.assertEqual(get_list.call_args.kwargs["limit_page_length"], 100)
+
+    def test_list_documents_forwards_multiple_child_filters_and_distinct(self):
+        filters = [
+            ["Has Role", "role", "=", "System Manager"],
+            ["Block Module", "module", "=", "Core"],
+        ]
+        with patch("frappe.get_list", return_value=[]) as get_list:
+            core.list_documents.__wrapped__(
+                "User",
+                fields=[],
+                filters=filters,
+                distinct=True,
+            )
+
+        self.assertEqual(get_list.call_args.kwargs["filters"], filters)
+        self.assertTrue(get_list.call_args.kwargs["distinct"])
+
+    def test_list_documents_requires_real_parent_for_direct_child_query(self):
+        with patch("frappe.get_list", return_value=[]) as get_list:
+            core.list_documents.__wrapped__(
+                "Has Role",
+                fields=["parent", "role"],
+                parent_doctype="User",
+            )
+        self.assertEqual(get_list.call_args.kwargs["parent_doctype"], "User")
+
+        with self.assertRaises(frappe.PermissionError):
+            core.list_documents.__wrapped__("Has Role")
+        with self.assertRaises(frappe.PermissionError):
+            core.list_documents.__wrapped__("Has Role", parent_doctype="ToDo")
 
     def test_page_length_uses_site_default(self):
         settings = SimpleNamespace(default_page_length=30, maximum_page_length=80)

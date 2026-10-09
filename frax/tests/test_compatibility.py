@@ -119,6 +119,54 @@ class TestCompatibilityReleaseGate(FrappeTestCase):
         self.assertEqual(preview["meta"]["doctype"], "ToDo")
         self.assertTrue(any(row["name"] == name for row in preview["data"]))
 
+    def test_parent_queries_support_multiple_child_tables_and_distinct(self):
+        user_name = f"frax-query-{frappe.generate_hash(length=10)}@example.com"
+        user = frappe.get_doc(
+            {
+                "doctype": "User",
+                "email": user_name,
+                "first_name": "Frax Query Probe",
+                "enabled": 1,
+                "send_welcome_email": 0,
+                "roles": [
+                    {"role": "System Manager"},
+                    {"role": "Website Manager"},
+                ],
+                "block_modules": [
+                    {"module": "Core"},
+                    {"module": "Email"},
+                ],
+            }
+        ).insert(ignore_permissions=True)
+        self.addCleanup(_delete_if_exists, "User", user.name)
+
+        rows = core.list_documents.__wrapped__(
+            "User",
+            fields=[],
+            filters=[
+                [
+                    "Has Role",
+                    "role",
+                    "in",
+                    ["System Manager", "Website Manager"],
+                ],
+                ["Block Module", "module", "in", ["Core", "Email"]],
+            ],
+            distinct=True,
+        )
+        self.assertEqual([row["name"] for row in rows], [user.name])
+
+        child_rows = core.list_documents.__wrapped__(
+            "Has Role",
+            fields=["parent", "role"],
+            filters={"parent": user.name},
+            parent_doctype="User",
+        )
+        self.assertEqual(
+            {row["role"] for row in child_rows},
+            {"System Manager", "Website Manager"},
+        )
+
     def test_audit_aggregation_and_diagnostic_redaction_on_database(self):
         tool_name = "frax_compatibility_probe"
         secret_marker = "compatibility-secret-must-not-export"

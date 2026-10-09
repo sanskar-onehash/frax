@@ -24,6 +24,8 @@ def list_documents(
     order_by: str | None = None,
     limit_start: int | None = None,
     limit_page_length: int | None = None,
+    distinct: bool = False,
+    parent_doctype: str | None = None,
 ):
     """List records from one DocType using the current user's Frappe permissions.
 
@@ -34,12 +36,18 @@ def list_documents(
     Args:
         doctype: DocType to query. Must be an exact DocType name.
         fields: Field names to return. Defaults to name.
-        filters: Frappe filters to apply.
+        filters: Frappe filters to apply. Prefer querying the parent DocType and
+            qualify child-table filters with their DocType, for example
+            ``[["Has Role", "role", "=", "System Manager"]]``. Filters from
+            multiple child tables can be combined in one parent query.
         order_by: Optional order clause.
         limit_start: Offset for pagination.
         limit_page_length: Maximum number of records to return.
+        distinct: Remove duplicate parent rows introduced by child-table joins.
+        parent_doctype: Required only when querying a child DocType directly. The
+            declared parent must contain a Table field for the child DocType.
     """
-    from frappe.client import get_list
+    from frappe.desk.reportview import validate_args
     from frax.setup import get_settings_state
 
     settings = get_settings_state()
@@ -47,14 +55,44 @@ def list_documents(
     maximum_length = int(settings.maximum_page_length or 200)
     page_length = min(maximum_length, max(1, int(limit_page_length or default_length)))
 
-    return get_list(
+    _validate_parent_doctype(doctype, parent_doctype)
+    args = frappe._dict(
         doctype=doctype,
+        parent_doctype=parent_doctype,
         fields=fields,
         filters=filters,
         order_by=order_by,
         limit_start=max(0, int(limit_start or 0)),
         limit_page_length=page_length,
+        as_list=False,
     )
+    validate_args(args)
+    args.distinct = bool(distinct)
+    return frappe.get_list(**args)
+
+
+def _validate_parent_doctype(doctype: str, parent_doctype: str | None):
+    meta = frappe.get_meta(doctype)
+    if not meta.istable:
+        if parent_doctype:
+            frappe.throw(_("parent_doctype is valid only for a child DocType."))
+        return
+    if not parent_doctype:
+        frappe.throw(
+            _("parent_doctype is required when listing a child DocType."),
+            frappe.PermissionError,
+        )
+
+    parent_meta = frappe.get_meta(parent_doctype)
+    owns_child = any(
+        field.fieldtype in {"Table", "Table MultiSelect"} and field.options == doctype
+        for field in parent_meta.fields
+    )
+    if not owns_child:
+        frappe.throw(
+            _("{0} is not a child table of {1}.").format(doctype, parent_doctype),
+            frappe.PermissionError,
+        )
 
 
 @frax_tool(
