@@ -115,10 +115,11 @@ def authorization_server_metadata():
         "response_types_supported": ["code"],
         "grant_types_supported": ["authorization_code", "refresh_token"],
         "code_challenge_methods_supported": ["S256"],
-        "token_endpoint_auth_methods_supported": [
-            "client_secret_basic",
-            "client_secret_post",
-        ],
+        # Frappe v15's request authentication treats an HTTP Basic header as
+        # API-key credentials before the OAuth endpoint gets the request. MCP
+        # clients must therefore use public-client PKCE and send client_id in
+        # the token form, which Frappe's OAuth validator supports natively.
+        "token_endpoint_auth_methods_supported": ["none"],
         "scopes_supported": ["all", "openid"],
     }
 
@@ -153,14 +154,19 @@ def register_client():
         }
     ).insert(ignore_permissions=True)
 
-    response_data = {
+    return _json_response(
+        _registration_payload(client, metadata),
+        status=201,
+    )
+
+
+def _registration_payload(client, metadata):
+    """Return public-client metadata without exposing the stored compatibility secret."""
+    return {
         "client_id": client.client_id,
         "client_id_issued_at": int(time.time()),
-        "client_secret_expires_at": 0,
         **metadata,
     }
-    response_data["client_secret"] = client.client_secret
-    return _json_response(response_data, status=201)
 
 
 def _validate_client_metadata(data):
@@ -188,13 +194,9 @@ def _validate_client_metadata(data):
     if response_types != ["code"]:
         raise ValueError("only the code response type is supported")
 
-    auth_method = data.get("token_endpoint_auth_method") or "client_secret_basic"
-    if auth_method not in {"none", "client_secret_basic", "client_secret_post"}:
-        raise ValueError("unsupported token_endpoint_auth_method")
-    # Frappe v15 requires client authentication at its token endpoint. Accept a
-    # public-client registration request, then transparently issue credentials.
-    if auth_method == "none":
-        auth_method = "client_secret_basic"
+    auth_method = data.get("token_endpoint_auth_method") or "none"
+    if auth_method != "none":
+        raise ValueError("only public-client PKCE authentication is supported")
 
     requested_scopes = (data.get("scope") or "all openid").split()
     if not requested_scopes or not set(requested_scopes).issubset({"all", "openid"}):

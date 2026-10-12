@@ -14,7 +14,9 @@ default OneHash presentation, administrator controls, and response envelopes.
 Users connect with only the MCP endpoint on both branches.
 
 - v15 uses Frax's compatibility implementation for OAuth discovery, RFC 7591 dynamic
-  client registration, and the framework's authenticated token exchange.
+  public-client registration, and PKCE with the framework's token endpoint. HTTP Basic
+  client authentication is not advertised because v15 interprets that header as Frappe
+  API-key authentication before its OAuth endpoint receives the request.
 - v16 defers to the framework's native discovery, dynamic client registration, public
   clients, and PKCE implementation.
 
