@@ -93,7 +93,10 @@ def handle_resource_request(request_payload: dict):
 def augment_response(response, request_payload: dict):
     """Add optional MCP Apps metadata without changing the text-only contract."""
     try:
-        payload = json.loads(response.get_data(as_text=True))
+        response_data = response.get_data(as_text=True)
+        if not response_data:
+            return response
+        payload = json.loads(response_data)
         method = request_payload.get("method")
         if method == "initialize" and isinstance(payload.get("result"), dict):
             capabilities = payload["result"].setdefault("capabilities", {})

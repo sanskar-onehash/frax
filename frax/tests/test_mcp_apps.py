@@ -93,6 +93,19 @@ class TestMCPApps(unittest.TestCase):
             [APP_MIME_TYPE],
         )
 
+    @patch("frax.mcp_apps.frappe.log_error")
+    def test_empty_notification_response_is_ignored(self, log_error):
+        response = Response(status=202)
+
+        result = augment_response(
+            response, {"jsonrpc": "2.0", "method": "notifications/initialized"}
+        )
+
+        self.assertIs(result, response)
+        self.assertEqual(result.status_code, 202)
+        self.assertEqual(result.get_data(), b"")
+        log_error.assert_not_called()
+
     def test_only_supported_tools_receive_ui_metadata(self):
         response = augment_response(
             self.response(

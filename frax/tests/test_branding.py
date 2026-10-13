@@ -122,3 +122,20 @@ class TestBranding(TestCase):
 
         error = json.loads(response.get_data(as_text=True))["error"]
         self.assertEqual(error["message"], "OneHash operation failed")
+
+    def test_empty_notification_response_is_ignored(self):
+        response = Response(status=202)
+        frappe = _frappe_with_config()
+        frappe.log_error = lambda **kwargs: self.fail(
+            "A valid empty notification response must not be logged"
+        )
+
+        with patch.object(branding, "frappe", frappe):
+            result = branding.brand_mcp_response(
+                response,
+                {"jsonrpc": "2.0", "method": "notifications/initialized"},
+            )
+
+        self.assertIs(result, response)
+        self.assertEqual(result.status_code, 202)
+        self.assertEqual(result.get_data(), b"")
