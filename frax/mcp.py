@@ -76,7 +76,10 @@ def _filter_tools_response(response):
     invoke a disabled or unavailable category.
     """
     try:
-        payload = json.loads(response.get_data(as_text=True))
+        response_data = response.get_data(as_text=True)
+        if not response_data:
+            return response
+        payload = json.loads(response_data)
         tools = payload.get("result", {}).get("tools")
         if not isinstance(tools, list):
             return response

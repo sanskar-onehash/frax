@@ -120,7 +120,10 @@ def branded_operator_context(base_context: str) -> str:
 def brand_mcp_response(response, request_payload: dict):
     """Apply branding to protocol metadata without rewriting operational tool data."""
     try:
-        payload = json.loads(response.get_data(as_text=True))
+        response_data = response.get_data(as_text=True)
+        if not response_data:
+            return response
+        payload = json.loads(response_data)
         result = payload.get("result")
         method = request_payload.get("method")
         branding = get_branding()
