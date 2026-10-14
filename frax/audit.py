@@ -75,6 +75,11 @@ def log_tool_call(
         if not frappe.db.exists("DocType", "Frax MCP Audit Log"):
             return
         doctype, name = target_from_arguments(arguments)
+        target_doctype = (
+            doctype
+            if doctype and frappe.db.exists("DocType", doctype)
+            else None
+        )
         affected = _affected_documents(result)
         frappe.get_doc(
             {
@@ -89,7 +94,7 @@ def log_tool_call(
                 "duration_ms": duration_ms,
                 "arguments_hash": arguments_hash(arguments),
                 "arguments_preview": json.dumps(redacted(arguments), default=str)[:5000],
-                "target_doctype": doctype,
+                "target_doctype": target_doctype,
                 "target_name": name,
                 "affected_documents": json.dumps(affected, default=str) if affected else None,
                 "error_class": error.__class__.__name__ if error else None,
@@ -113,8 +118,10 @@ def _affected_documents(result: Any) -> list[dict[str, str]]:
     documents = []
     values = result if isinstance(result, list) else [result]
     for value in values:
-        if hasattr(value, "as_dict"):
-            value = value.as_dict()
+        if not isinstance(value, dict):
+            as_dict = getattr(value, "as_dict", None)
+            if callable(as_dict):
+                value = as_dict()
         if not isinstance(value, dict):
             continue
         value = value.get("data", value)

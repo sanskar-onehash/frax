@@ -1,10 +1,12 @@
 import unittest
+from types import SimpleNamespace
 from typing import Literal
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import frappe
 
-from frax.audit import arguments_hash, redacted
+from frax import audit
+from frax.audit import _affected_documents, arguments_hash, redacted
 from frax.tools.registry import _resolve_input_schema, _validate_arguments
 
 
@@ -33,6 +35,44 @@ class TestToolGovernance(unittest.TestCase):
                 "name": "safe",
             },
         )
+
+    def test_affected_documents_accepts_frappe_dict(self):
+        result = frappe._dict(doctype="Event", name="EV00022")
+
+        self.assertEqual(
+            _affected_documents(result),
+            [{"doctype": "Event", "name": "EV00022"}],
+        )
+
+    def test_audit_keeps_invalid_doctype_out_of_link_field(self):
+        audit_document = MagicMock()
+        fake_frappe = SimpleNamespace(
+            db=SimpleNamespace(
+                exists=lambda doctype, name: name == "Frax MCP Audit Log"
+            ),
+            session=SimpleNamespace(user="Administrator"),
+            get_doc=MagicMock(return_value=audit_document),
+            log_error=MagicMock(),
+        )
+
+        with patch.object(audit, "frappe", fake_frappe), patch.object(
+            audit, "_authentication_method", return_value="oauth"
+        ):
+            audit.log_tool_call(
+                tool_name="frax_get_doctype_context",
+                category="context",
+                risk="read",
+                arguments={"doctype": "Missing DocType"},
+                outcome="error",
+                duration_ms=8,
+                error=RuntimeError("DocType not found"),
+            )
+
+        payload = fake_frappe.get_doc.call_args.args[0]
+        self.assertIsNone(payload["target_doctype"])
+        self.assertIn("Missing DocType", payload["arguments_preview"])
+        audit_document.insert.assert_called_once_with(ignore_permissions=True)
+        fake_frappe.log_error.assert_not_called()
 
     def test_tool_schema_rejects_missing_required_argument(self):
         def example(doctype: str, limit: int | None = None):
