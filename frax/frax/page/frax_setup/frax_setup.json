@@ -2,7 +2,7 @@
   "content": null,
   "creation": "2026-08-26 00:00:00.000000",
   "doctype": "Page",
-  "modified": "2026-08-26 00:00:00.000000",
+  "modified": "2026-11-04 12:25:49.168735",
   "modified_by": "Administrator",
   "module": "Frax",
   "name": "frax-setup",
@@ -13,5 +13,5 @@
   "standard": "Yes",
   "style": null,
   "system_page": 0,
-  "title": "Connection Setup"
+  "title": "Frax MCP Setup"
 }

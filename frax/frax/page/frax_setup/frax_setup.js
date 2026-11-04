@@ -1,7 +1,7 @@
 frappe.pages["frax-setup"].on_page_load = function (wrapper) {
   const page = frappe.ui.make_app_page({
     parent: wrapper,
-    title: __("Connection Setup"),
+    title: __("Frax MCP Setup"),
     single_column: true,
   });
   const $root = $(frappe.render_template("frax_setup")).appendTo(page.body);
@@ -52,7 +52,7 @@ class FraxMCPSetup {
   render() {
     const context = this.context;
     const branding = context.branding;
-    this.page.set_title(__("{0} Setup", [branding.product_name]));
+    this.page.set_title(__("Frax MCP Setup"));
     this.$root.find("[data-brand-title]").text(branding.display_title);
     const logo = branding.logo_url || branding.icon_url;
     this.$root
