@@ -10,6 +10,10 @@ class TestPromptGuidance(unittest.TestCase):
         self.assertIn("leading newline", OPERATOR_CONTEXT)
         self.assertIn("Choose intentionally", OPERATOR_CONTEXT)
 
+    def test_operator_context_requires_server_script_validation(self):
+        self.assertIn("Before every Server Script create or update", OPERATOR_CONTEXT)
+        self.assertIn("Never use `.format()`", OPERATOR_CONTEXT)
+
     def test_native_ui_context_requires_intentional_form_layout(self):
         self.assertIn("complete merged field order", NATIVE_UI_CONTEXT)
         self.assertIn("Tab Break, Section Break, and Column Break", NATIVE_UI_CONTEXT)

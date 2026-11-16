@@ -4,8 +4,15 @@ import ast
 import warnings
 from typing import Any
 
+import frappe
+import frappe.utils.safe_exec as safe_exec_runtime
 from RestrictedPython import compile_restricted
-from frappe.utils.safe_exec import FrappeTransformer, get_safe_globals, is_safe_exec_enabled
+from frappe.utils.safe_exec import (
+    UNSAFE_ATTRIBUTES,
+    FrappeTransformer,
+    get_safe_globals,
+    is_safe_exec_enabled,
+)
 
 from frax.tools.registry import annotations_for, frax_tool
 
@@ -21,6 +28,7 @@ SCRIPT_LOCALS = {
     "Scheduler Event": set(),
     "Script Report": {"filters", "data", "result", "columns", "chart", "report_summary"},
 }
+INPLACE_ASSIGNMENT_AVAILABLE = hasattr(safe_exec_runtime, "protected_inplacevar")
 
 
 @frax_tool(
@@ -62,7 +70,7 @@ def validate_server_script(
     doctype_event: str | None = None,
     reference_doctype: str | None = None,
 ):
-    """Compile proposed Server Script code and return warnings without executing or blocking it."""
+    """Validate proposed Server Script code without executing it."""
     diagnostics: list[dict[str, Any]] = []
     try:
         with warnings.catch_warnings(record=True) as caught:
@@ -84,14 +92,15 @@ def validate_server_script(
         )
 
     diagnostics.extend(_static_diagnostics(script or "", script_type))
+    diagnostics = _dedupe(diagnostics)
     return {
         "compilable": compilable,
         "server_scripts_enabled": bool(is_safe_exec_enabled()),
         "script_type": script_type,
         "doctype_event": doctype_event,
         "reference_doctype": reference_doctype,
-        "diagnostics": _dedupe(diagnostics),
-        "blocking": False,
+        "diagnostics": diagnostics,
+        "blocking": any(item.get("severity") == "error" for item in diagnostics),
         "executed": False,
     }
 
@@ -101,12 +110,27 @@ def validate_script_payload(values: dict[str, Any], current=None):
     if script is None and current is not None:
         script = current.get("script")
     script_type = values.get("script_type") or (current and current.get("script_type")) or "DocType Event"
-    return validate_server_script(
+    validation = validate_server_script.__wrapped__(
         script=script or "",
         script_type=script_type,
         doctype_event=values.get("doctype_event") or (current and current.get("doctype_event")),
         reference_doctype=values.get("reference_doctype") or (current and current.get("reference_doctype")),
     )
+    if validation["blocking"]:
+        errors = [
+            (
+                f"line {item['line']}: {item['message']}"
+                if item.get("line")
+                else item["message"]
+            )
+            for item in validation["diagnostics"]
+            if item.get("severity") == "error"
+        ]
+        frappe.throw(
+            "Server Script validation failed: " + "; ".join(errors),
+            frappe.ValidationError,
+        )
+    return validation
 
 
 def _static_diagnostics(script: str, script_type: str):
@@ -119,9 +143,29 @@ def _static_diagnostics(script: str, script_type: str):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             diagnostics.append(_diagnostic("error", "imports_unavailable", node, "Imports are unavailable in Server Scripts."))
         elif isinstance(node, ast.AugAssign):
-            diagnostics.append(_diagnostic("warning", "augmented_assignment", node, "Augmented assignment can require unavailable RestrictedPython inplace guards; prefer explicit assignment."))
+            diagnostics.append(
+                _diagnostic(
+                    "warning" if INPLACE_ASSIGNMENT_AVAILABLE else "error",
+                    "augmented_assignment",
+                    node,
+                    (
+                        "Augmented assignment uses the protected restricted-runtime guard; prefer explicit assignment for cross-version compatibility."
+                        if INPLACE_ASSIGNMENT_AVAILABLE
+                        else "Augmented assignment is unavailable because this restricted runtime does not provide an inplace guard; use explicit assignment."
+                    ),
+                )
+            )
         elif isinstance(node, ast.Attribute) and node.attr.startswith("_"):
             diagnostics.append(_diagnostic("error", "private_attribute", node, "Private and underscore attributes are unavailable."))
+        elif isinstance(node, ast.Attribute) and node.attr in UNSAFE_ATTRIBUTES:
+            diagnostics.append(
+                _diagnostic(
+                    "error",
+                    "unsafe_attribute",
+                    node,
+                    f".{node.attr} is unavailable in Server Scripts.",
+                )
+            )
         elif isinstance(node, ast.Call):
             path = _call_path(node.func)
             if path in {"frappe.db.commit", "frappe.db.rollback", "frappe.db.add_index"} and script_type == "DocType Event":
