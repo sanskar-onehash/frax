@@ -42,7 +42,7 @@ The service, OAuth, API-token fallback, and all tool categories default to enabl
 
 Frax exposes bounded query/count/batch-read tools, native Link search, attachments, PDFs, assignments, tags, reporting-artifact validation, Report Builder previews, and saved-report execution. Responses use a consistent `data`, `meta`, `warnings`, and `links` shape where appropriate. MCP Apps-capable clients can render document lists, details, and reports inline; other clients receive the same JSON/text result.
 
-Server Script writes are compiled against the installed Frappe restricted-Python runtime before saving. Diagnostics are warnings-only and call out unavailable imports/private attributes, document-event transaction calls, direct database writes, `update_modified=False`, and recursive event saves. This intentionally guides developers without introducing a separate developer mode.
+Server Script writes are compiled against the installed Frappe restricted-Python runtime before saving. Guaranteed runtime-invalid constructs such as imports, private/unsafe attributes, `.format()`, and unavailable document-event transaction calls are rejected before save. Advisory risks such as direct database writes, `update_modified=False`, and recursive event saves remain warnings so experienced developers can make an informed choice without a separate developer mode.
 
 When ERPNext is installed, **Business Operations Tools** add native helpers for item and party details, stock balance, fiscal year/exchange rate, common transaction mappings, and draft Payment Entries. Frax uses ERPNext's own methods and the acting user's permissions; it does not duplicate ERPNext's business logic. Sites without the owning application do not advertise these tools.
 

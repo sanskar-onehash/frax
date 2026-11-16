@@ -253,6 +253,8 @@ def create_server_script(doc: dict[str, Any]):
     High-risk admin write. Server Scripts run restricted Python and may affect document
     events, scheduler, permission queries, API routes, or whitelisted endpoint behavior.
     Check settings, metadata, workflows, existing scripts/hooks, and restricted syntax first.
+    Runtime-invalid restricted syntax is rejected before save; use f-strings or explicit
+    concatenation instead of `.format()` or `.format_map()`.
 
     Args:
         doc: Server Script fields. doctype is optional and will be set to Server Script.
@@ -278,6 +280,8 @@ def update_server_script(name: str, values: dict[str, Any]):
 
     High-risk admin write. Inspect current code, trigger type, target DocType, permissions,
     workflows, hooks, settings, and restricted Python constraints before updating.
+    Runtime-invalid restricted syntax is rejected before save; use f-strings or explicit
+    concatenation instead of `.format()` or `.format_map()`.
 
     Args:
         name: Server Script name.
